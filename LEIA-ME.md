@@ -66,6 +66,7 @@ Para atualizar depois (por exemplo, mudar o `config.js`): abra o arquivo no GitH
 ## Ajustes úteis
 
 - **Início do intérprete**: se o intérprete começar adiantado ou atrasado em relação ao original, mude os segundos na coluna **Início do intérprete (segundos)** daquele vídeo. O botão **Ressincronizar** refaz o encaixe na hora.
+- **Capa padrão dos sinais**: os cartões dos sinais mostram só a imagem quadrada que aparece sempre no mesmo lugar do vídeo (a figura do santo, por exemplo). O recorte vem das linhas `capa_x`, `capa_y` e `capa_zoom` da aba Configurações. Se mudar o layout dos vídeos, ajuste esses três números.
 - **Capas**: coluna **Capa (link de imagem)** para usar sua imagem; **Capa X** e **Capa Y** (0 a 100) escolhem a parte da imagem que aparece; **Capa zoom** (1 = inteira, 1.5 = aproximada).
 - **Bandeiras das Variações**: escreva o código na coluna Bandeira (ex.: BA, RS, PT) e coloque o arquivo `BA.png` na pasta `bandeiras/`. Sem o arquivo, aparece o código escrito.
 - **Prefixos da letra**: aba Configurações, linha `prefixos_ignorados`.

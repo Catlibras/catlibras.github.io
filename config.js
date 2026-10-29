@@ -5,7 +5,7 @@
       Enquanto estiver vazio, a área de comentários fica escondida.
 */
 window.CATLIBRAS = {
-  SHEET_ID: '1PNRMigPs49SBlOlPnTS60S4iVuDrqxTyf4BdIpxVRZ8',
+  SHEET_ID: '',
   COMENTARIOS_URL: '',
   CANAL_URL: 'https://www.youtube.com/@catlibras?sub_confirmation=1'
 };

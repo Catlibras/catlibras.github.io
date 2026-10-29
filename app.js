@@ -76,9 +76,12 @@ function fromExample(ex){
 /* ---------- modelo ---------- */
 var D={sinais:[],temas:{},patr:{},euc:[],acess:[],equipe:[],cfg:{},prefixos:[]};
 var DEFAULT_PREF='padre, irmã, irmão, ir, frei, dom, dra, dr, madre, monsenhor, cardeal, papa, beato, beata, são, santo, santa, santas, santos';
-function capaOf(r,fallbackId){
+function ytimg(id){return 'https://i.ytimg.com/vi/'+id+'/hq720.jpg'}
+function capaOf(r,fallbackId,def){
   var img=String(f(r,'capa (link')||'').trim();
-  return {img:img||(fallbackId?thumb(fallbackId):''),custom:!!img,x:pct(f(r,'capa x')),y:pct(f(r,'capa y')),z:num(f(r,'capa zoom'),1)};
+  def=def||{x:'50%',y:'50%',z:1};
+  function has(k){return String(f(r,k)).trim()!==''}
+  return {img:img,yt:img?'':(fallbackId||''),x:has('capa x')?pct(f(r,'capa x')):def.x,y:has('capa y')?pct(f(r,'capa y')):def.y,z:has('capa zoom')?num(f(r,'capa zoom'),def.z):def.z};
 }
 function buildModel(raw){
   D.cfg={};
@@ -86,6 +89,7 @@ function buildModel(raw){
   D.prefixos=(D.cfg.prefixos_ignorados||DEFAULT_PREF).split(',').map(function(p){return norm(p)}).filter(Boolean);
   D.temas={};D.temasHome=[];
   raw.temas.forEach(function(r){var n=String(f(r,'tema')).trim();if(!n) return;D.temas[slug(n)]={nome:n,desc:String(f(r,'descricao')||''),capa:capaOf(r,'')};D.temasHome.push(slug(n))});
+  var CAPA_SINAL={x:D.cfg.capa_x?pct(D.cfg.capa_x):'7%',y:D.cfg.capa_y?pct(D.cfg.capa_y):'36.5%',z:D.cfg.capa_zoom?num(D.cfg.capa_zoom,2.5):2.5};
   var used={},modo=norm(D.cfg.mostrar_em_breve||'nao'),hoje=new Date().toISOString().slice(0,10);
   D.sinais=[];
   raw.sinais.forEach(function(r,i){
@@ -101,7 +105,7 @@ function buildModel(raw){
       var k=slug(t); if(!D.temas[k]) D.temas[k]={nome:t,desc:'',capa:{img:'',x:'50%',y:'50%',z:1},extra:true}; return k;
     });
     D.sinais.push({id:id,titulo:titulo,nome:nomePrincipal(titulo),outros:String(f(r,'outros')||'').split(',').map(function(t){return t.trim()}).filter(Boolean),
-      sinonimos:String(f(r,'sinonimos')||''),temas:temas,yt:publicado?yt:'',soon:!publicado,data:publicado?data:'',capa:capaOf(r,publicado?yt:''),ordem:i});
+      sinonimos:String(f(r,'sinonimos')||''),temas:temas,yt:publicado?yt:'',soon:!publicado,data:publicado?data:'',capa:capaOf(r,publicado?yt:'',CAPA_SINAL),ordem:i});
   });
   D.patr={};
   raw.patristica.filter(function(r){return norm(f(r,'ativo'))!=='nao'}).forEach(function(r){
@@ -137,6 +141,7 @@ function cover(c,seed){
   var hh=hue(seed||'x'),b=(hh+40)%360;
   var st='--x:'+c.x+';--y:'+c.y+';--z:'+c.z+';';
   var grad='radial-gradient(circle at 28% 24%,hsl('+hh+' 58% 44%) 0,transparent 52%),radial-gradient(circle at 78% 82%,hsl('+b+' 62% 32%) 0,transparent 58%)';
+  if(c.yt) return '<span class="cover" style="'+st+'background-color:hsl('+hh+' 42% 16%)"><img class="cimg" src="'+ytimg(c.yt)+'" alt="" loading="lazy" onerror="this.onerror=null;this.src=\''+thumb(c.yt)+'\'"></span>';
   var bg=(c.img?'url('+c.img.replace(/[()'"\s]/g,function(ch){return '%'+ch.charCodeAt(0).toString(16)})+'),':'')+grad;
   return '<span class="cover img" style="'+st+'background-image:'+bg+';background-color:hsl('+hh+' 42% 16%)"></span>';
 }
