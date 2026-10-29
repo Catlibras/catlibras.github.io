@@ -86,3 +86,8 @@ Depois de publicar:
 5. Em **Inspeção de URL**, cole `https://catlibras.github.io/` e clique em **Solicitar indexação**.
 
 Limite: hoje o Google enxerga bem a página inicial. Cada sinal dentro do catálogo (`#sinal-jesus`) não vira resultado próprio, porque o endereço com `#` é tratado como a mesma página. Para cada sinal aparecer sozinho na busca ("sinal de Jesus em Libras"), é preciso gerar uma página por sinal a partir da planilha, e isso entra no sitemap. É o próximo passo recomendado.
+
+## Sinais ainda não publicados
+A planilha guarda todos os sinais, publicados ou não. A coluna **Situação** diz em que pé está cada um. O site mostra **só os que têm link do YouTube**. Quando você colar o link de um sinal, ele aparece no site.
+
+Se um dia quiser mostrar os que ainda não saíram como "Em breve" (cartão apagado, sem clique), mude a linha `mostrar_em_breve` da aba Configurações para `aprovados` ou `todos`. O padrão é `nao`.
