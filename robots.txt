@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://catlibras.github.io/sitemap.xml

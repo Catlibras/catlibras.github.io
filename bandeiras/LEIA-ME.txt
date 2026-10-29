@@ -1,0 +1,1 @@
+Coloque aqui as bandeiras (BA.png, RS.png, PT.png...). O nome do arquivo é o código escrito na coluna Bandeira da planilha.
