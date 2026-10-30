@@ -166,7 +166,7 @@ function vctl(extra){
     '<button type="button" data-speed="0.5" aria-pressed="false">0,5×</button>'+
     '<button type="button" data-speed="0.75" aria-pressed="false">0,75×</button>'+
     '<button type="button" data-speed="1" aria-pressed="true">1×</button></div>'+
-    '<button type="button" class="tog" data-repeat aria-pressed="false">↻ Repetir</button>'+(extra||'')+'</div>';
+    (extra||'')+'</div>';
 }
 function poster(id,label){
   return '<button class="poster" type="button" aria-label="'+esc(label||'Reproduzir')+'"><img src="'+thumb(id)+'" alt="" loading="lazy"><span class="big">'+PLAY+'</span></button>';
@@ -232,7 +232,7 @@ function dualView(back,it,title,prev,next){
   var home='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg>';
   return '<div class="dualpage"><div class="dual"><div class="pair">'+
     '<div class="frame live orig" id="fo">'+poster(it.orig,'Reproduzir os dois vídeos')+'</div>'+
-    (it.terp?'<div class="frame live terp" id="ft">'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'<div class="frame live terp soonbox" id="ft"><span>Em breve</span></div>')+
+    (it.terp?'<div class="frame live terp" id="ft">'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'<div class="frame live terp soonbox" id="ft"><span>Em breve - Tradução em Libras</span></div>')+
     '</div></div>'+
     '<div class="player-bar" id="pbar" role="group" aria-label="Navegação">'+
     '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início">'+home+'</a>'+
@@ -361,6 +361,7 @@ function isNew(s){
   var d=new Date(s.data+'T00:00:00');return !isNaN(d)&&(Date.now()-d.getTime())<14*864e5;
 }
 function head(h){return '<h1>'+h+'</h1><hr class="rule">'}
+var DEF_WHATS='https://whatsapp.com/channel/0029VaGE5bbHwXb8n4YcpC3G',DEF_TELEGRAM='https://t.me/+HBcOID9aNCZlMDc5';
 var views={
   inicio:function(){
     var hk=(D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
@@ -380,7 +381,7 @@ var views={
     var team=D.equipe.map(function(r){
       var nm=String(f(r,'nome')),role=String(f(r,'surdo')),ph=String(f(r,'foto')).trim();
       if(!nm) return '';
-      return '<div class="member"><div class="photo">'+(ph?'<img src="'+esc(ph)+'" alt="" style="width:100%;height:100%;object-fit:cover">':SIL)+'</div><div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(norm(role)==='surdo'?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
+      return '<div class="member"><div class="photo">'+SIL+(ph?'<img src="'+esc(ph)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">':'')+'</div><div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(/^surd/.test(norm(role))?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
     }).join('');
     var txt=D.cfg.texto_sobre?'<p>'+esc(D.cfg.texto_sobre).replace(/\n+/g,'</p><p>')+'</p>':
       '<p>Em 2016, durante um intercâmbio de experiências entre intérpretes católicos de LIBRAS da Arquidiocese de Brasília, surgiu o desejo de reunir os estudos e reflexões acumulados ao longo dos anos sobre a vivência da fé em LIBRAS.</p>'+
@@ -393,9 +394,17 @@ var views={
     var team=D.equipe.map(function(r){
       var nm=String(f(r,'nome')),role=String(f(r,'surdo')),ph=String(f(r,'foto')).trim();
       if(!nm) return '';
-      return '<div class="member"><div class="photo">'+(ph?'<img src="'+esc(ph)+'" alt="" style="width:100%;height:100%;object-fit:cover">':SIL)+'</div><div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(norm(role)==='surdo'?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
+      return '<div class="member"><div class="photo">'+SIL+(ph?'<img src="'+esc(ph)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">':'')+'</div><div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(/^surd/.test(norm(role))?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
     }).join('');
     return head('Nossa equipe')+(team?'<div class="team">'+team+'</div>':'<p class="note">Em breve.</p>');
+  },
+  contato:function(){
+    var TGICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
+    var items=[['Canal no WhatsApp',D.cfg.contato_whatsapp||DEF_WHATS,WAICON],['Fórum CatLIBRAS no Telegram',D.cfg.contato_telegram||DEF_TELEGRAM,TGICON]];
+    var h=items.filter(function(x){return /^https:\/\//i.test(String(x[1]).trim())}).map(function(x){
+      return '<div class="contato-item"><h2>'+esc(x[0])+'</h2><a class="btn wa contato-ic" href="'+esc(String(x[1]).trim())+'" target="_blank" rel="noopener" aria-label="'+esc(x[0])+'" title="'+esc(x[0])+'">'+x[2]+'</a></div>';
+    }).join('');
+    return head('Contato')+(h?'<div class="contato">'+h+'</div>':'<p class="note">Em breve.</p>');
   },
   catalogo:function(){
     var L='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');

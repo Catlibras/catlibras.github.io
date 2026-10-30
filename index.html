@@ -385,13 +385,19 @@ footer.foot{margin-top:24px}
 .instbar .row{display:flex;gap:8px}
 .dualpage .player-bar .btn{white-space:nowrap}
 .frame.soonbox{display:grid;place-items:center;background:radial-gradient(120% 120% at 20% 10%,#12336f,#060f23 70%);border:1px solid var(--line)}
-.frame.soonbox span{font-family:var(--font-label);letter-spacing:.18em;text-transform:uppercase;font-size:14px;color:var(--gold-soft)}
+.frame.soonbox span{text-align:center;line-height:1.5;padding:0 14px;text-wrap:balance;font-family:var(--font-label);letter-spacing:.18em;text-transform:uppercase;font-size:14px;color:var(--gold-soft)}
 .entidades{display:flex;flex-wrap:wrap;gap:24px 32px;margin-top:36px;padding-top:22px;border-top:1px solid var(--line)}
 .entidade{display:flex;flex-direction:column;gap:8px}
 .entidade .ent-t{margin:0;font-family:var(--font-label);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .entidade .ent-box{background:#fff;border-radius:4px;padding:8px 14px;display:inline-flex;align-items:center}
-.entidade img{display:block;height:52px;width:auto;max-width:200px;object-fit:contain}
+.entidade .ent-box{width:200px;height:76px;padding:8px 14px;display:flex;align-items:center;justify-content:center}
+.entidade a{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.entidade img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;margin:0 auto}
 .entidade a{display:inline-flex}
+.contato{display:flex;flex-wrap:wrap;gap:28px 48px;margin-top:26px}
+.contato-item h2{font-size:18px;margin:0 0 12px;font-weight:700}
+.btn.wa.contato-ic{width:72px;height:72px;padding:0;justify-content:center}
+.btn.wa.contato-ic svg{width:38px;height:38px}
 </style>
 </head>
 <body>
@@ -413,6 +419,7 @@ footer.foot{margin-top:24px}
 <footer class="foot"><div class="wrap foot-in">
   <a href="#sobre">Sobre</a>
   <a href="#equipe">Nossa equipe</a>
+  <a href="#contato">Contato</a>
   <a class="btn small" href="https://www.youtube.com/@catlibras?sub_confirmation=1" target="_blank" rel="noopener">Inscreva-se no canal</a>
   <a href="#" id="instl" hidden>Instalar app</a>
 </div></footer>
