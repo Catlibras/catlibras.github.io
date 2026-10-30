@@ -10,7 +10,7 @@ O que tem aqui:
 | `config.js` | **o único arquivo que você edita**: código da planilha e endereço dos comentários |
 | `dados-exemplo.js` | dados de teste; usados só enquanto o código da planilha estiver vazio |
 | `apps-script/Codigo.gs` | comentários, vídeos enviados e aviso por e-mail |
-| `logo.svg`, `favicon.svg`, `icons/`, `manifest.webmanifest`, `sw.js` | logo, ícone da aba e instalação na tela inicial |
+| `logo.svg`, `favicon.svg`, `icons/`, `manifest.webmanifest`, `sw.js` | logo, ícone da aba (só a cruz e a mão) e instalação na tela inicial |
 | `bandeiras/` | imagens de bandeiras (opcional) |
 
 ---
@@ -59,13 +59,13 @@ Para atualizar depois (por exemplo, mudar o `config.js`): abra o arquivo no GitH
 ## Conferindo se deu certo
 
 - A página inicial mostra a busca, os 4 botões, os temas e os últimos vídeos.
-- Patrística → Módulo 1 → um vídeo: aparece o original e a faixa do intérprete. Toque no play: os dois começam juntos.
+- Patrística → Módulo 1 → um vídeo: aparece o original e a faixa do intérprete. Toque no play: os dois começam juntos. Use os controles do próprio YouTube; o intérprete acompanha pausa, avanço e velocidade.
 - Se o original mostrar anúncio, o botão **Pular** do próprio YouTube aparece depois do tempo obrigatório. Enquanto durar o anúncio, o intérprete espera; depois, os dois voltam juntos.
 - No celular, no menu do navegador, procure **Instalar** ou **Adicionar à tela inicial**.
 
 ## Ajustes úteis
 
-- **Início do intérprete**: se o intérprete começar adiantado ou atrasado em relação ao original, mude os segundos na coluna **Início do intérprete (segundos)** daquele vídeo. O botão **Ressincronizar** refaz o encaixe na hora.
+- **Início do intérprete**: se o intérprete começar adiantado ou atrasado em relação ao original, mude os segundos na coluna **Início do intérprete (segundos)** daquele vídeo. Play, pausa, barra de tempo, velocidade e repetir são feitos no próprio player do YouTube, e o intérprete acompanha.
 - **Capa padrão dos sinais**: os cartões dos sinais mostram só a imagem quadrada que aparece sempre no mesmo lugar do vídeo (a figura do santo, por exemplo). O recorte vem das linhas `capa_x`, `capa_y` e `capa_zoom` da aba Configurações. Se mudar o layout dos vídeos, ajuste esses três números.
 - **Capas**: coluna **Capa (link de imagem)** para usar sua imagem; **Capa X** e **Capa Y** (0 a 100) escolhem a parte da imagem que aparece; **Capa zoom** (1 = inteira, 1.5 = aproximada).
 - **Bandeiras das Variações**: escreva o código na coluna Bandeira (ex.: BA, RS, PT) e coloque o arquivo `BA.png` na pasta `bandeiras/`. Sem o arquivo, aparece o código escrito.
@@ -92,3 +92,17 @@ Limite: hoje o Google enxerga bem a página inicial. Cada sinal dentro do catál
 A planilha guarda todos os sinais, publicados ou não. A coluna **Situação** diz em que pé está cada um. O site mostra **só os que têm link do YouTube**. Quando você colar o link de um sinal, ele aparece no site.
 
 Se um dia quiser mostrar os que ainda não saíram como "Em breve" (cartão apagado, sem clique), mude a linha `mostrar_em_breve` da aba Configurações para `aprovados` ou `todos`. O padrão é `nao`.
+
+## Instalar o app na tela inicial
+- Na página inicial, o site oferece "Instalar o Catlibras na tela inicial?" toda vez que a pessoa abre (no celular com Chrome ou no computador). Se ela tocar em "Agora não", a pergunta volta na próxima vez que abrir.
+- Quem recusou pode instalar depois pelo link **Instalar app**, no rodapé de todas as páginas.
+- No iPhone (Safari) não existe botão automático. O site mostra a orientação: Compartilhar → Adicionar à Tela de Início.
+- O ícone que aparece no celular é só a cruz e a mão. Se o navegador guardou o ícone antigo, limpe os dados do site ou aguarde alguns dias.
+
+## Páginas Dual Play
+São as páginas com o vídeo original e o intérprete (Conteúdo Dual Play e Patrística). Os botões são só **Voltar**, **Anterior**, **Próximo** e **WhatsApp**. No celular na vertical o cabeçalho com a logo aparece; na horizontal ele some para os dois vídeos ocuparem a tela.
+
+Se a coluna **Link do intérprete** ficar vazia (Acessibilidade ou Patrística), o espaço do intérprete mostra "Em breve" e o vídeo original toca normalmente. Quando você colar o link do intérprete, ele passa a funcionar sozinho.
+
+## Logos de Realização e Apoio
+Aparecem no final da página **Sobre**, com os títulos "Realização" e "Apoio", cada logo sobre um fundo branco. Coloque os arquivos na pasta `apoio/` do GitHub e preencha, na aba **Configurações**, as linhas `realizacao_imagem`, `realizacao_nome`, `realizacao_link` e `apoio_imagem`, `apoio_nome`, `apoio_link`. Imagem: PNG ou JPG, horizontal, cerca de 300 × 100 px. O link é opcional. Sem a imagem, aquele bloco não aparece.

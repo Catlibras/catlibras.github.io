@@ -18,7 +18,9 @@
 <meta property="og:image" content="https://catlibras.github.io/icons/icon-512.png">
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon-48.png" sizes="48x48" type="image/png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&family=Cinzel:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
@@ -218,8 +220,6 @@ nav.menu{order:1;margin-left:0;width:auto;justify-content:center}
 body.home .homebtn{display:none}
 
 /* Tela dos dois vídeos: a página rola, os controles ficam embaixo e não tiram área dos vídeos */
-body.watch .top .wrap{display:none}
-body.watch .top{min-height:60px}
 body.watch main{max-width:none;padding-block:12px 48px}
 .dual{container-type:inline-size}
 /* Vertical: original e intérprete, um embaixo do outro, na mesma largura (100%) */
@@ -351,6 +351,47 @@ footer.foot{margin-top:24px}
 .msg{padding:18px;color:var(--silver);font-size:15px}
 .cform-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .clist video{max-width:100%;border-radius:4px;margin-top:8px}
+
+/* Botão do WhatsApp: ícone amarelo em botão azul */
+.btn.wa{background:var(--navy-2);border:1px solid var(--gold);padding:7px 12px;color:var(--gold-soft)}
+.btn.wa:hover{background:var(--royal)}
+.btn.wa svg{width:22px;height:22px;display:block;fill:var(--gold-soft)}
+.pn small,.pn b{white-space:normal}
+.pn .ar{font-family:'Source Serif 4',serif;letter-spacing:.02em}
+/* Sinal na horizontal: cabeçalho não fica fixo e o vídeo cabe na altura da tela */
+@media (min-aspect-ratio:1/1){
+  .top{position:static}
+  .solo{max-width:min(900px,calc((100dvh - 24px) * 16 / 9))}
+  .vctl,.pn{max-width:min(900px,calc((100dvh - 24px) * 16 / 9))}
+}
+@media (min-aspect-ratio:1/1){
+  body.solopage .top{display:none}
+  body.solopage main.wrap{padding-top:12px}
+  .sp{display:flex;flex-direction:column}
+  .sp .solo{order:-1}
+}
+@media (min-aspect-ratio:1/1) and (max-height:620px){
+  .brand img{height:38px}
+  .top .wrap{padding-block:6px}
+  .top .menu{margin-top:0}
+}
+/* Mais vídeos */
+.morewrap{display:flex;justify-content:center;margin-top:18px}
+.morebtn{width:52px;height:52px;padding:0;justify-content:center;font-size:28px;line-height:1;font-weight:400;background:var(--navy-2);color:var(--gold-soft);border:1px solid var(--gold);border-radius:50%;cursor:pointer;font-family:var(--font-ui)}
+.morebtn:hover{background:var(--royal)}
+/* Instalar na tela inicial */
+.instbar{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:50;max-width:520px;margin-inline:auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;background:var(--navy-2);border:1px solid var(--gold);border-radius:6px;box-shadow:0 12px 32px rgba(0,0,0,.5);font-size:14.5px}
+.instbar p{margin:0;flex:1 1 220px;color:var(--ice)}
+.instbar .row{display:flex;gap:8px}
+.dualpage .player-bar .btn{white-space:nowrap}
+.frame.soonbox{display:grid;place-items:center;background:radial-gradient(120% 120% at 20% 10%,#12336f,#060f23 70%);border:1px solid var(--line)}
+.frame.soonbox span{font-family:var(--font-label);letter-spacing:.18em;text-transform:uppercase;font-size:14px;color:var(--gold-soft)}
+.entidades{display:flex;flex-wrap:wrap;gap:24px 32px;margin-top:36px;padding-top:22px;border-top:1px solid var(--line)}
+.entidade{display:flex;flex-direction:column;gap:8px}
+.entidade .ent-t{margin:0;font-family:var(--font-label);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.entidade .ent-box{background:#fff;border-radius:4px;padding:8px 14px;display:inline-flex;align-items:center}
+.entidade img{display:block;height:52px;width:auto;max-width:200px;object-fit:contain}
+.entidade a{display:inline-flex}
 </style>
 </head>
 <body>
@@ -362,7 +403,7 @@ footer.foot{margin-top:24px}
       <a href="#catalogo" data-nav="catalogo">Catálogo</a>
       <a href="#patristica" data-nav="patristica">Patrística</a>
       <a href="#oracao-eucaristica" data-nav="oracao">Oração Eucarística</a>
-      <a href="#acessibilidade" data-nav="acessibilidade">Acessibilidade Catlibras</a>
+      <a href="#acessibilidade" data-nav="acessibilidade">Conteúdo Dual Play</a>
     </nav>
   </div>
 </header>
@@ -371,7 +412,9 @@ footer.foot{margin-top:24px}
 
 <footer class="foot"><div class="wrap foot-in">
   <a href="#sobre">Sobre</a>
+  <a href="#equipe">Nossa equipe</a>
   <a class="btn small" href="https://www.youtube.com/@catlibras?sub_confirmation=1" target="_blank" rel="noopener">Inscreva-se no canal</a>
+  <a href="#" id="instl" hidden>Instalar app</a>
 </div></footer>
 
 <div id="vo" class="overlay" hidden role="dialog" aria-modal="true" aria-label="Vídeo">

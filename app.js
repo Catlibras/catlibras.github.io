@@ -79,7 +79,7 @@ var DEFAULT_PREF='padre, irmã, irmão, ir, frei, dom, dra, dr, madre, monsenhor
 function ytimg(id){return 'https://i.ytimg.com/vi/'+id+'/hq720.jpg'}
 function capaOf(r,fallbackId,def){
   var img=String(f(r,'capa (link')||'').trim();
-  def=def||{x:'50%',y:'50%',z:1};
+  def=img?{x:'50%',y:'50%',z:1}:(def||{x:'50%',y:'50%',z:1});
   function has(k){return String(f(r,k)).trim()!==''}
   return {img:img,yt:img?'':(fallbackId||''),x:has('capa x')?pct(f(r,'capa x')):def.x,y:has('capa y')?pct(f(r,'capa y')):def.y,z:has('capa zoom')?num(f(r,'capa zoom'),def.z):def.z};
 }
@@ -157,9 +157,11 @@ function barTile(href,name,c,seed){return '<a class="tile theme cov" href="'+hre
 function videoTile(href,name,c,seed,attr){
   return '<a class="tile cov" href="'+href+'"'+(attr||'')+'>'+cover(c,seed)+'<span class="play">'+PLAY+'</span><span class="name">'+esc(name)+'</span></a>';
 }
-function waLink(title){return 'https://wa.me/?text='+encodeURIComponent((title?title+' ':'')+location.href)}
+var WAICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
+function waBtn(text,label){return '<a class="btn small wa" href="https://wa.me/?text='+encodeURIComponent(text)+'" target="_blank" rel="noopener" aria-label="'+(label||'Compartilhar no WhatsApp')+'" title="'+(label||'Compartilhar no WhatsApp')+'">'+WAICON+'</a>'}
 function vctl(extra){
   return '<div class="vctl" role="group" aria-label="Controles do vídeo">'+
+    '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg></a>'+
     '<div class="seg" role="group" aria-label="Velocidade">'+
     '<button type="button" data-speed="0.5" aria-pressed="false">0,5×</button>'+
     '<button type="button" data-speed="0.75" aria-pressed="false">0,75×</button>'+
@@ -226,90 +228,63 @@ function stopDual(){
   [dual.o,dual.t].forEach(function(p){try{p&&p.destroy()}catch(e){}});
   dual=null;
 }
-function dualView(back,it,title){
-  /* it: {orig,terp,ini,nome} */
+function dualView(back,it,title,prev,next){
   var home='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg>';
   return '<div class="dualpage"><div class="dual"><div class="pair">'+
-    '<div class="frame live orig" id="fo"><span class="chip">Vídeo original</span>'+poster(it.orig,'Reproduzir os dois vídeos')+'</div>'+
-    (it.terp?'<div class="frame live terp" id="ft"><span class="chip">Intérprete</span>'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'')+
+    '<div class="frame live orig" id="fo">'+poster(it.orig,'Reproduzir os dois vídeos')+'</div>'+
+    (it.terp?'<div class="frame live terp" id="ft">'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'<div class="frame live terp soonbox" id="ft"><span>Em breve</span></div>')+
     '</div></div>'+
-    '<div class="player-bar" id="pbar" role="group" aria-label="Controles dos dois vídeos">'+
+    '<div class="player-bar" id="pbar" role="group" aria-label="Navegação">'+
     '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início">'+home+'</a>'+
-    '<a class="btn small ghost" href="'+back+'">← Voltar</a>'+
-    '<button class="go" id="pgo" type="button">Reproduzir</button>'+
-    '<button id="pback" type="button" aria-label="Voltar 10 segundos">−10 s</button>'+
-    '<button id="pfwd" type="button" aria-label="Avançar 10 segundos">+10 s</button>'+
-    '<div class="track" id="ptrack" role="slider" aria-label="Posição" style="cursor:pointer"><i id="pfill"></i></div>'+
-    '<span class="time" id="ptime">0:00</span>'+
-    '<div class="seg" role="group" aria-label="Velocidade"><button type="button" data-speed="0.5" aria-pressed="false">0,5×</button><button type="button" data-speed="0.75" aria-pressed="false">0,75×</button><button type="button" data-speed="1" aria-pressed="true">1×</button></div>'+
-    '<button type="button" class="tog" data-repeat aria-pressed="false">↻ Repetir</button>'+
-    '<a class="btn small ghost" href="'+waLink(title)+'" target="_blank" rel="noopener">Compartilhar</a>'+
-    (it.terp?'<button id="psync" class="linkbtn" type="button">Ressincronizar</button>':'')+
+    '<a class="btn small ghost" href="'+back+'">Voltar</a>'+
+    (prev?'<a class="btn small ghost" href="'+prev+'" rel="prev"><span class="ar">《</span> Anterior</a>':'')+
+    (next?'<a class="btn small ghost" href="'+next+'" rel="next">Próximo <span class="ar">》</span></a>':'')+
+    waBtn((title?title+' ':'')+location.href)+
     '</div></div>';
 }
 function initDual(it){
   var fo=$('#fo'),ft=$('#ft'); if(!fo) return;
-  var d=dual={o:null,t:null,timer:null,started:false,lastT:-1,stall:0,it:it,apply:null};
+  var d=dual={o:null,t:null,timer:null,started:false,lastT:-1,stall:0,rate:1,it:it,apply:null};
   function oTime(){try{return d.o.getCurrentTime()||0}catch(e){return 0}}
   function target(){return oTime()+(it.ini||0)}
-  d.apply=function(){[d.o,d.t].forEach(function(p){try{p&&p.setPlaybackRate(speed)}catch(e){}})};
-  function resync(){if(d.t&&d.o){try{d.t.seekTo(target(),true)}catch(e){}}}
+  d.apply=function(){};
+  /* Tudo o que a pessoa faz no player do YouTube (play, pausa, barra, velocidade, repetir) é copiado para o intérprete */
   function tick(){
     if(!d.o||!d.o.getPlayerState) return;
-    var st=d.o.getPlayerState(),t=oTime(),dur=0;
-    try{dur=d.o.getDuration()||0}catch(e){}
-    $('#pfill').style.width=(dur?Math.min(100,t/dur*100):0)+'%';
-    $('#ptime').textContent=fmt(t)+(dur?' / '+fmt(dur):'');
-    $('#pgo').textContent=(st===1||st===3)?'Pausar':'Reproduzir';
+    var st=d.o.getPlayerState(),t=oTime();
     /* anúncio ou travamento: o vídeo diz que toca, mas o tempo não anda */
     if(st===1||st===3){ if(Math.abs(t-d.lastT)<0.01) d.stall+=250; else d.stall=0; } else d.stall=0;
     d.lastT=t;
     var playing=(st===1)&&d.stall<1000;
     if(!d.t) return;
+    var r=1;try{r=d.o.getPlaybackRate()||1}catch(e){}
+    if(r!==d.rate){d.rate=r;try{d.t.setPlaybackRate(r)}catch(e){}}
     var ts=-2;try{ts=d.t.getPlayerState()}catch(e){}
     if(playing){
       var tt=target(),tc=0;try{tc=d.t.getCurrentTime()||0}catch(e){}
       if(ts!==1&&ts!==3){try{d.t.seekTo(tt,true);d.t.playVideo()}catch(e){}}
-      else if(Math.abs(tc-tt)>0.7){try{d.t.seekTo(tt,true)}catch(e){}}
+      else if(Math.abs(tc-tt)>0.7*r){try{d.t.seekTo(tt,true)}catch(e){}}
     } else if(ts===1||ts===3){ try{d.t.pauseVideo()}catch(e){} }
   }
   function start(){
     if(d.started) return; d.started=true;
-    fo.innerHTML='<span class="chip">Vídeo original</span>';
+    fo.innerHTML='';
     var so=document.createElement('div');fo.appendChild(so);
     var st=null;
-    if(ft){ft.innerHTML='<span class="chip">Intérprete</span>';st=document.createElement('div');ft.appendChild(st)}
+    if(ft&&it.terp){ft.innerHTML='';st=document.createElement('div');ft.appendChild(st)}
     ytReady(function(){
       if(dual!==d) return;
       d.o=mkPlayer(so,it.orig,{autoplay:1,controls:1,title:'Vídeo original',
-        onReady:function(){d.apply()},
-        onState:function(s,p){
-          if(s===0){ if(repeat){p.seekTo(0);p.playVideo();setTimeout(resync,300)} else if(d.t){try{d.t.pauseVideo()}catch(e){}} }
-        },
+        onState:function(s){if(s===0&&d.t){try{d.t.pauseVideo()}catch(e){}}},
         onError:function(){unavailable(fo)}});
       if(st) d.t=mkPlayer(st,it.terp,{autoplay:0,controls:0,mute:1,start:Math.floor(it.ini||0),title:'Intérprete de Libras',
-        onReady:function(){d.apply()},onError:function(){unavailable(ft)}});
+        onError:function(){unavailable(ft)}});
       d.timer=setInterval(tick,250);
     });
   }
   d.start=start;
   fo.addEventListener('click',function(e){if(e.target.closest('.poster'))start()});
-  if(ft) ft.addEventListener('click',function(e){if(e.target.closest('.poster'))start()});
-  $('#pgo').addEventListener('click',function(){
-    if(!d.started){start();return}
-    if(!d.o||!d.o.getPlayerState) return;
-    var s=d.o.getPlayerState();
-    if(s===1||s===3) d.o.pauseVideo(); else d.o.playVideo();
-  });
-  $('#pback').addEventListener('click',function(){if(d.o&&d.o.seekTo){d.o.seekTo(Math.max(0,oTime()-10),true);setTimeout(resync,200)}});
-  $('#pfwd').addEventListener('click',function(){if(d.o&&d.o.seekTo){d.o.seekTo(oTime()+10,true);setTimeout(resync,200)}});
-  $('#ptrack').addEventListener('click',function(e){
-    if(!d.o||!d.o.getDuration) return;
-    var r=this.getBoundingClientRect(),p=(e.clientX-r.left)/r.width;
-    d.o.seekTo(p*d.o.getDuration(),true);setTimeout(resync,200);
-  });
-  var rs=$('#psync');
-  if(rs) rs.addEventListener('click',function(){resync();rs.textContent='Sincronizado';setTimeout(function(){rs.textContent='Ressincronizar'},1400)});
+  if(ft&&it.terp) ft.addEventListener('click',function(e){if(e.target.closest('.poster'))start()});
 }
 
 /* ---------- comentários ---------- */
@@ -379,7 +354,7 @@ function recentList(){
     if(!!a.data!==!!b.data) return a.data?-1:1;
     return b.ordem-a.ordem;
   });
-  return l.slice(0,12);
+  return l;
 }
 function isNew(s){
   if(!s.data) return false;
@@ -390,13 +365,15 @@ var views={
   inicio:function(){
     var hk=(D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
     var th=hk.map(themeTile).join('');
-    var rec=recentList().map(function(s){return signTile(s,isNew(s))}).join('');
+    var RL=recentList(),PAGE=12;
+    var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return i<PAGE?t:t.replace(/^<a /,'<a hidden ')}).join('');
+    var more=RL.length>PAGE?'<div class="morewrap"><button type="button" class="morebtn" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos">+</button></div>':'';
     return '<section class="hero">'+
       '<div class="search hero-search"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>'+
       '<input id="qh" type="search" placeholder="Buscar sinal pelo nome" autocomplete="off" aria-label="Buscar sinal pelo nome"><div id="resultsh" class="results" hidden></div></div>'+
-      '<div class="actions" style="margin-top:0"><a class="btn" href="#catalogo">Explorar o catálogo</a><a class="btn ghost" href="#patristica">Patrística</a><a class="btn ghost" href="#oracao-eucaristica">Oração Eucarística</a><a class="btn ghost" href="#acessibilidade">Acessibilidade Catlibras</a></div></section>'+
-      (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide">'+th+'</div></section>':'')+
-      (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos publicados</h2></div><hr class="rule"><div class="grid compact">'+rec+'</div></section>':'');
+      '<div class="actions" style="margin-top:0"><a class="btn" href="#catalogo">Explorar o catálogo</a><a class="btn ghost" href="#patristica">Patrística</a><a class="btn ghost" href="#oracao-eucaristica">Oração Eucarística</a><a class="btn ghost" href="#acessibilidade">Conteúdo Dual Play</a></div></section>'+
+      (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos publicados</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
+      (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide">'+th+'</div></section>':'');
   },
   sobre:function(){
     var SIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
@@ -409,7 +386,16 @@ var views={
       '<p>Em 2016, durante um intercâmbio de experiências entre intérpretes católicos de LIBRAS da Arquidiocese de Brasília, surgiu o desejo de reunir os estudos e reflexões acumulados ao longo dos anos sobre a vivência da fé em LIBRAS.</p>'+
       '<p>Formou-se então um grupo de trabalho, composto majoritariamente por surdos engajados na missão evangelizadora, junto a intérpretes comprometidos com o discipulado. Com dedicação e amor à Igreja, o grupo se empenhou na validação dos sinais com participação ativa da comunidade surda.</p>'+
       '<p>O CatLibras não tem como objetivo padronizar os sinais, mas sim catalogar aqueles utilizados e compreendidos pela comunidade surda católica. Deseja ser uma fonte confiável e pastoral, acessível a todos os que buscam servir e viver a fé de forma inclusiva. É um passo concreto rumo a uma Igreja mais acolhedora, onde surdos e intérpretes caminham juntos como discípulos missionários.</p>';
-    return head('Sobre')+'<div class="about">'+txt+'</div>'+(team?'<section class="section"><div class="section-head"><h2>Equipe</h2></div><hr class="rule"><div class="team">'+team+'</div></section>':'');
+    return head('Sobre')+'<div class="about">'+txt+'</div>'+entidadesHtml();
+  },
+  equipe:function(){
+    var SIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
+    var team=D.equipe.map(function(r){
+      var nm=String(f(r,'nome')),role=String(f(r,'surdo')),ph=String(f(r,'foto')).trim();
+      if(!nm) return '';
+      return '<div class="member"><div class="photo">'+(ph?'<img src="'+esc(ph)+'" alt="" style="width:100%;height:100%;object-fit:cover">':SIL)+'</div><div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(norm(role)==='surdo'?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
+    }).join('');
+    return head('Nossa equipe')+(team?'<div class="team">'+team+'</div>':'<p class="note">Em breve.</p>');
   },
   catalogo:function(){
     var L='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -427,7 +413,7 @@ var views={
     var slides=dest.map(function(x,k){return '<a class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:linear-gradient(to top,rgba(6,14,34,.9),rgba(6,14,34,.1)),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
     var dots=dest.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
     var g=D.acess.map(function(a,i){return videoTile('#video-acessibilidade-'+(i+1),a.titulo,a.capa,'ac'+i)}).join('');
-    return head('Acessibilidade Catlibras')+
+    return head('Conteúdo Dual Play')+
       (dest.length?'<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>':'')+
       (g?'<div class="grid compact" style="margin-top:26px">'+g+'</div>':'<p class="note">Em breve.</p>');
   }
@@ -440,8 +426,8 @@ function sinalView(s){
     for(q=0;q<lst.length;q++){if(lst[q].id===s.id)ix=q}
     var pv=lst[ix-1],nx=lst[ix+1];
     pn='<nav class="pn" aria-label="Anterior e próximo em '+esc(D.temas[th].nome)+'">'+
-      (pv?'<a href="#sinal-'+pv.id+'"><small>← Anterior</small><b>'+esc(label(pv))+'</b></a>':'<span class="off"></span>')+
-      (nx?'<a class="nx" href="#sinal-'+nx.id+'"><small>Próximo →</small><b>'+esc(label(nx))+'</b></a>':'<span class="off"></span>')+'</nav>';
+      (pv?'<a href="#sinal-'+pv.id+'"><small><span class="ar">《</span> Anterior</small><b>'+esc(label(pv))+'</b></a>':'<span class="off"></span>')+
+      (nx?'<a class="nx" href="#sinal-'+nx.id+'"><small>Próximo <span class="ar">》</span></small><b>'+esc(label(nx))+'</b></a>':'<span class="off"></span>')+'</nav>';
   }
   var tags=s.temas.map(function(k){return '<li><a href="#tema-'+k+'">'+esc(D.temas[k].nome)+'</a></li>'}).join('');
   var vars=(D.raw.variacoes||[]).filter(function(r){return (slug(f(r,'sinal'))===slug(s.titulo)||slug(nomePrincipal(String(f(r,'sinal'))))===slug(s.nome))&&ytid(f(r,'link'))&&norm(f(r,'ativo'))!=='nao'}).sort(function(a,b){return num(f(a,'ordem'),99)-num(f(b,'ordem'),99)});
@@ -450,11 +436,11 @@ function sinalView(s){
     var flag=code?'<span class="flag" style="background:#1d2f5c">'+esc(code.slice(0,3).toUpperCase())+'<img src="bandeiras/'+esc(code.toUpperCase())+'.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()"></span>':'';
     return '<a class="tile cov" href="#" data-video="'+esc(lugar)+'" data-yt="'+id+'">'+cover({img:thumb(id),x:'50%',y:'50%',z:1},id)+flag+'<span class="play">'+PLAY+'</span><span class="name">'+esc(lugar)+'</span></a>';
   }).join('');
-  return '<p class="eyebrow">Sinal</p><h1>'+esc(label(s))+'</h1>'+(tags?'<ul class="tags">'+tags+'</ul>':'')+
+  return '<div class="sp"><p class="eyebrow">Sinal</p><h1>'+esc(label(s))+'</h1>'+(tags?'<ul class="tags">'+tags+'</ul>':'')+
     '<div class="solo"><div class="frame live" id="sf">'+poster(s.yt,'Reproduzir '+label(s))+'</div>'+
-    vctl('<a class="btn small ghost" href="'+waLink(s.titulo)+'" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>')+pn+'</div>'+
+    vctl(waBtn('https://youtu.be/'+s.yt))+pn+'</div>'+
     (reg?'<section class="section"><div class="section-head"><h2>Variações</h2></div><hr class="rule"><div class="grid small">'+reg+'</div></section>':'')+
-    commentsBlock('sinal-'+s.id,true);
+    commentsBlock('sinal-'+s.id,true)+'</div>';
 }
 function eucView(e){
   var T=['Versão Catlibras','Alternativas de estratégia de tradução','Tradução comentada'];
@@ -494,9 +480,9 @@ function render(){
   } else if((mt=h.match(/^patristica-(\d+)$/))&&D.patr[mt[1]]){
     html=patrView(mt[1]);nav='patristica';
   } else if((mt=h.match(/^video-patristica-(\d+)-(\d+)$/))&&D.patr[mt[1]]&&D.patr[mt[1]][mt[2]-1]){
-    var v=D.patr[mt[1]][mt[2]-1];html=dualView('#patristica-'+mt[1],v,v.nome);nav='patristica';after=function(){initDual(v)};
+    var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='patristica';after=function(){initDual(v)};
   } else if((mt=h.match(/^video-acessibilidade-(\d+)$/))&&D.acess[mt[1]-1]){
-    var a=D.acess[mt[1]-1];html=dualView('#acessibilidade',a,a.titulo);nav='acessibilidade';after=function(){initDual(a)};
+    var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'');nav='acessibilidade';after=function(){initDual(a)};
   } else if(views[h]){
     html=views[h]();nav=({catalogo:'catalogo','oracao-eucaristica':'oracao',patristica:'patristica',acessibilidade:'acessibilidade'})[h]||'';
   } else { html=views.inicio(); }
@@ -505,8 +491,9 @@ function render(){
   $('nav.menu').hidden=!!hq;
   document.body.classList.toggle('watch',h.indexOf('video-')===0);
   document.body.classList.toggle('home',!!hq);
+  document.body.classList.toggle('solopage',h.indexOf('sinal-')===0);
   document.querySelectorAll('nav.menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
-  closeVideo();initSpot();
+  closeVideo();initSpot();maybeInstBar();
   if(after) after();
   window.scrollTo(0,0);
 }
@@ -537,6 +524,11 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeVideo()
 document.addEventListener('click',function(e){
   var sp=e.target.closest&&e.target.closest('[data-speed]');
   if(sp){sp.parentNode.querySelectorAll('[data-speed]').forEach(function(b){b.setAttribute('aria-pressed',b===sp?'true':'false')});applySpeed(parseFloat(sp.getAttribute('data-speed')))}
+  if(e.target.closest&&e.target.closest('#more')){
+    var hid=document.querySelectorAll('#recent > [hidden]'),n=Math.min(12,hid.length),i;
+    for(i=0;i<n;i++) hid[i].hidden=false;
+    if(hid.length<=12){var mb=$('#more');if(mb) mb.parentNode.remove()}
+  }
   var rp=e.target.closest&&e.target.closest('[data-repeat]');
   if(rp){repeat=rp.getAttribute('aria-pressed')!=='true';rp.setAttribute('aria-pressed',repeat?'true':'false')}
   var v=e.target.closest&&e.target.closest('[data-video]');
@@ -557,6 +549,52 @@ function setupSearch(q,res){
   res.addEventListener('click',function(){setTimeout(function(){q.value='';closeAll()},0)});
 }
 document.addEventListener('click',function(e){if(!e.target.closest('.search'))closeAll()});
+
+/* ---------- instalar na tela inicial ---------- */
+var deferredInstall=null,installDismissed=false;
+function standalone(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
+function isIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}
+function removeInstBar(){var b=$('#instbar');if(b)b.remove()}
+function showInstBar(forceHelp){
+  removeInstBar();
+  if(standalone()) return;
+  var help=forceHelp||!deferredInstall;
+  var msg=help?(isIOS()?'Para instalar: toque em Compartilhar (quadrado com seta) e depois em Adicionar à Tela de Início.':'Para instalar: abra o menu do navegador (três pontinhos) e escolha Instalar app ou Adicionar à tela inicial.'):'Instalar o Catlibras na tela inicial do aparelho?';
+  var bar=document.createElement('div');bar.id='instbar';bar.className='instbar';bar.setAttribute('role','region');bar.setAttribute('aria-label','Instalar aplicativo');
+  bar.innerHTML='<p>'+msg+'</p><div class="row">'+(help?'':'<button type="button" class="btn small" id="instgo">Instalar</button>')+'<button type="button" class="btn small ghost" id="instno">'+(help?'Entendi':'Agora não')+'</button></div>';
+  document.body.appendChild(bar);
+  var go=$('#instgo');
+  if(go) go.addEventListener('click',function(){
+    var d=deferredInstall;deferredInstall=null;removeInstBar();
+    if(d){d.prompt();d.userChoice&&d.userChoice.then(function(){})}
+  });
+  $('#instno').addEventListener('click',function(){installDismissed=true;removeInstBar()});
+}
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;if(!standalone()&&!installDismissed&&$('#qh')) showInstBar()});
+window.addEventListener('appinstalled',function(){deferredInstall=null;removeInstBar();var l=$('#instl');if(l) l.hidden=true});
+var instl=$('#instl');
+if(instl&&!standalone()){
+  instl.hidden=false;
+  instl.addEventListener('click',function(e){e.preventDefault();showInstBar(!deferredInstall)});
+}
+/* a cada abertura do site, na página inicial, a pergunta volta (em iPhone, só a orientação) */
+function maybeInstBar(){
+  removeInstBar();
+  if(standalone()||installDismissed||!$('#qh')) return;
+  if(deferredInstall||isIOS()) showInstBar();
+}
+
+/* ---------- realização e apoio (final da página Sobre) ---------- */
+function entidadesHtml(){
+  var h='';
+  [['realizacao','Realização'],['apoio','Apoio']].forEach(function(p){
+    var img=String(D.cfg[p[0]+'_imagem']||'').trim();if(!img) return;
+    var nome=String(D.cfg[p[0]+'_nome']||p[1]).trim(),link=String(D.cfg[p[0]+'_link']||'').trim();
+    var im='<img src="'+esc(img)+'" alt="'+esc(nome)+'" loading="lazy">';
+    h+='<div class="entidade"><p class="ent-t">'+p[1]+'</p><div class="ent-box">'+(/^https?:\/\//i.test(link)?'<a href="'+esc(link)+'" target="_blank" rel="noopener" aria-label="'+esc(nome)+'">'+im+'</a>':im)+'</div></div>';
+  });
+  return h?'<div class="entidades">'+h+'</div>':'';
+}
 
 /* ---------- início ---------- */
 var foot=$('.foot-in a.btn');if(foot&&CFG.CANAL_URL) foot.href=CFG.CANAL_URL;
