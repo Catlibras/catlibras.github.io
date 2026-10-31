@@ -386,11 +386,37 @@ function recHtml(){
   }).join('');
   return '<section class="section"><div class="section-head"><h2>Recomendamos</h2></div><hr class="rule"><div class="recrow" role="list" aria-label="Canais recomendados">'+items+'</div></section>';
 }
+/* Equipe: cartão de integrante (foto opcionalmente leva ao Instagram) */
+var SILH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
+var IGICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg>';
+function igLink(v){
+  v=String(v||'').trim();if(!v) return '';
+  if(/^https?:\/\//i.test(v)) return v;
+  v=v.replace(/^@/,'').replace(/^(www\.)?instagram\.com\//i,'').replace(/[\/?#].*$/,'');
+  return /^[\w.]+$/.test(v)?'https://www.instagram.com/'+v:'';
+}
+function memberHtml(r){
+  var nm=String(f(r,'nome')),role=String(f(r,'surdo')),ph=String(f(r,'foto')).trim(),ig=igLink(f(r,'instagram'));
+  if(!nm) return '';
+  var photo='<div class="photo">'+SILH+(ph?'<img src="'+esc(ph)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">':'')+'</div>';
+  var pw=ig?'<a class="pw" href="'+esc(ig)+'" target="_blank" rel="noopener" aria-label="Instagram de '+esc(nm)+'">'+photo+'<span class="igb">'+IGICON+'</span></a>':'<div class="pw">'+photo+'</div>';
+  return '<div class="member">'+pw+'<div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(/^surd/.test(norm(role))?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
+}
+/* Temas na tela inicial: 5 por vez, em rodízio a cada abertura do app */
+var TEMAS_POR_VEZ=5,TEMA_INI=0;
+try{TEMA_INI=parseInt(localStorage.getItem('cl_tema_ini'),10)||0;localStorage.setItem('cl_tema_ini',String(TEMA_INI+TEMAS_POR_VEZ))}catch(e){}
+function rodizio(list){
+  var n=list.length;if(n<=TEMAS_POR_VEZ) return list;
+  var st=TEMA_INI%n,out=[],i;
+  for(i=0;i<n;i++) out.push(list[(st+i)%n]);
+  return out;
+}
 var views={
   inicio:function(){
     var hk=(D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
-    var th=hk.map(themeTile).join('');
-    var RL=recentList(),PAGE=12,spot=spotHtml();
+    var th=rodizio(hk).map(function(k,i){var t=themeTile(k);return i<TEMAS_POR_VEZ?t:t.replace(/^<a /,'<a hidden ')}).join('');
+    var moreTh=hk.length>TEMAS_POR_VEZ?'<div class="morewrap"><button type="button" class="morebtn" id="moreth" aria-label="Mostrar mais temas" title="Mostrar mais temas">+</button></div>':'';
+    var RL=recentList(),PAGE=6,spot=spotHtml();
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return i<PAGE?t:t.replace(/^<a /,'<a hidden ')}).join('');
     var more=RL.length>PAGE?'<div class="morewrap"><button type="button" class="morebtn" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos">+</button></div>':'';
     return '<section class="hero">'+
@@ -399,7 +425,7 @@ var views={
       '<div class="actions" style="margin-top:0"><a class="btn" href="#catalogo">Explorar o catálogo</a><a class="btn ghost" href="#patristica">Patrística</a><a class="btn ghost" href="#oracao-eucaristica">Oração Eucarística</a><a class="btn ghost" href="#acessibilidade">Conteúdo Dual Play</a></div></section>'+
       (spot?'<section class="section spotsec">'+spot+'</section>':'')+
       (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
-      (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide">'+th+'</div></section>':'')+
+      (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide" id="temasgrid">'+th+'</div>'+moreTh+'</section>':'')+
       recHtml();
   },
   sobre:function(){
@@ -416,13 +442,11 @@ var views={
     return head('Sobre')+'<div class="about">'+txt+'</div>'+entidadesHtml();
   },
   equipe:function(){
-    var SIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
-    var team=D.equipe.map(function(r){
-      var nm=String(f(r,'nome')),role=String(f(r,'surdo')),ph=String(f(r,'foto')).trim();
-      if(!nm) return '';
-      return '<div class="member"><div class="photo">'+SIL+(ph?'<img src="'+esc(ph)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">':'')+'</div><div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(/^surd/.test(norm(role))?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
-    }).join('');
-    return head('Nossa equipe')+(team?'<div class="team">'+team+'</div>':'<p class="note">Em breve.</p>');
+    var isInt=function(r){return /^intercess/.test(norm(f(r,'grupo')))};
+    var team=D.equipe.filter(function(r){return !isInt(r)}).map(memberHtml).join('');
+    var inter=D.equipe.filter(isInt).map(memberHtml).join('');
+    return head('Nossa equipe')+(team?'<div class="team">'+team+'</div>':(inter?'':'<p class="note">Em breve.</p>'))+
+      (inter?'<h2 class="subhead">Intercessores</h2><div class="team">'+inter+'</div>':'');
   },
   contato:function(){
     var TGICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
@@ -555,9 +579,13 @@ document.addEventListener('click',function(e){
   var sp=e.target.closest&&e.target.closest('[data-speed]');
   if(sp){sp.parentNode.querySelectorAll('[data-speed]').forEach(function(b){b.setAttribute('aria-pressed',b===sp?'true':'false')});applySpeed(parseFloat(sp.getAttribute('data-speed')))}
   if(e.target.closest&&e.target.closest('#more')){
-    var hid=document.querySelectorAll('#recent > [hidden]'),n=Math.min(12,hid.length),i;
+    var hid=document.querySelectorAll('#recent > [hidden]'),n=Math.min(6,hid.length),i;
     for(i=0;i<n;i++) hid[i].hidden=false;
-    if(hid.length<=12){var mb=$('#more');if(mb) mb.parentNode.remove()}
+    if(hid.length<=6){var mb=$('#more');if(mb) mb.parentNode.remove()}
+  }
+  if(e.target.closest&&e.target.closest('#moreth')){
+    document.querySelectorAll('#temasgrid > [hidden]').forEach(function(t){t.hidden=false});
+    var mt=$('#moreth');if(mt) mt.parentNode.remove();
   }
   var rp=e.target.closest&&e.target.closest('[data-repeat]');
   if(rp){repeat=rp.getAttribute('aria-pressed')!=='true';rp.setAttribute('aria-pressed',repeat?'true':'false')}
