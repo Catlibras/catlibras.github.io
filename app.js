@@ -52,10 +52,10 @@ function f(row,frag){
 function loadData(){
   var ex=window.DADOS_EXEMPLO;
   if(!CFG.SHEET_ID) return Promise.resolve({raw:fromExample(ex),source:'exemplo'});
-  var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações'];
+  var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos'];
   return Promise.all(tabs.map(function(t){return fetchTab(t).catch(function(){return null})})).then(function(r){
     if(!r[0]&&!r[2]) return {raw:fromExample(ex),source:'exemplo'};
-    return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[]},source:'planilha'};
+    return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[]},source:'planilha'};
   });
 }
 function fromExample(ex){
@@ -69,12 +69,13 @@ function fromExample(ex){
     acessibilidade:[],
     temas:a(ex.temas,{'tema':'tema','descricao':'descricao'}),
     equipe:[],
-    config:[]
+    config:[],
+    recomendamos:[]
   };
 }
 
 /* ---------- modelo ---------- */
-var D={sinais:[],temas:{},patr:{},euc:[],acess:[],equipe:[],cfg:{},prefixos:[]};
+var D={sinais:[],temas:{},patr:{},euc:[],acess:[],equipe:[],rec:[],cfg:{},prefixos:[]};
 var DEFAULT_PREF='padre, irmã, irmão, ir, frei, dom, dra, dr, madre, monsenhor, cardeal, papa, beato, beata, são, santo, santa, santas, santos';
 function ytimg(id){return 'https://i.ytimg.com/vi/'+id+'/hq720.jpg'}
 function capaOf(r,fallbackId,def){
@@ -123,6 +124,10 @@ function buildModel(raw){
     return {titulo:String(f(r,'titulo')),canal:String(f(r,'canal')||''),orig:o,terp:ytid(f(r,'link do interprete')),ini:num(f(r,'inicio'),0),destaque:yes(f(r,'destaque')),capa:capaOf(r,o)};
   });
   D.equipe=raw.equipe.slice().sort(function(a,b){return num(f(a,'ordem'),99)-num(f(b,'ordem'),99)});
+  /* Recomendamos: canais do YouTube (nome, link do canal, logo, ordem, ativo) */
+  D.rec=(raw.recomendamos||[]).filter(function(r){return norm(f(r,'ativo'))!=='nao'&&String(f(r,'canal')||f(r,'nome')).trim()&&/^https?:\/\//i.test(String(f(r,'link')).trim())}).map(function(r,i){
+    return {nome:String(f(r,'canal')||f(r,'nome')).trim(),link:String(f(r,'link')).trim(),logo:String(f(r,'logo')).trim(),ordem:num(f(r,'ordem'),999),i:i};
+  }).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i});
 }
 /* Letra do catálogo: ignora "Sinal de", "em Libras" e títulos como Padre, Irmã, São... */
 function chave(n){
@@ -362,19 +367,40 @@ function isNew(s){
 }
 function head(h){return '<h1>'+h+'</h1><hr class="rule">'}
 var DEF_WHATS='https://whatsapp.com/channel/0029VaGE5bbHwXb8n4YcpC3G',DEF_TELEGRAM='https://t.me/+HBcOID9aNCZlMDc5';
+/* Carrossel de destaque do Dual Play (usado no início e na página Conteúdo Dual Play) */
+function spotHtml(){
+  var dest=D.acess.map(function(a,i){return {a:a,i:i}}).filter(function(x){return x.a.destaque}).slice(0,3);
+  if(!dest.length) dest=D.acess.slice(0,3).map(function(a,i){return {a:a,i:i}});
+  if(!dest.length) return '';
+  var slides=dest.map(function(x,k){return '<a class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:linear-gradient(to top,rgba(6,14,34,.9),rgba(6,14,34,.1)),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
+  var dots=dest.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
+  return '<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
+}
+/* Recomendamos: círculos com a logo do canal e o nome embaixo, rolando para o lado */
+function recHtml(){
+  if(!D.rec.length) return '';
+  var items=D.rec.map(function(r){
+    var ini=esc((r.nome.match(/[A-Za-zÀ-ÿ0-9]/)||['?'])[0].toUpperCase());
+    var img=/^(https?:\/\/|[\w\-./]+\.(png|jpe?g|webp|svg|gif)$)/i.test(r.logo)?'<img src="'+esc(r.logo)+'" alt="" loading="lazy" onerror="this.remove()">':'';
+    return '<a class="rec" href="'+esc(r.link)+'" target="_blank" rel="noopener" aria-label="'+esc(r.nome)+' no YouTube"><span class="rimg">'+ini+img+'</span><span class="rname">'+esc(r.nome)+'</span></a>';
+  }).join('');
+  return '<section class="section"><div class="section-head"><h2>Recomendamos</h2></div><hr class="rule"><div class="recrow" role="list" aria-label="Canais recomendados">'+items+'</div></section>';
+}
 var views={
   inicio:function(){
     var hk=(D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
     var th=hk.map(themeTile).join('');
-    var RL=recentList(),PAGE=12;
+    var RL=recentList(),PAGE=12,spot=spotHtml();
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return i<PAGE?t:t.replace(/^<a /,'<a hidden ')}).join('');
     var more=RL.length>PAGE?'<div class="morewrap"><button type="button" class="morebtn" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos">+</button></div>':'';
     return '<section class="hero">'+
       '<div class="search hero-search"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>'+
       '<input id="qh" type="search" placeholder="Buscar sinal pelo nome" autocomplete="off" aria-label="Buscar sinal pelo nome"><div id="resultsh" class="results" hidden></div></div>'+
       '<div class="actions" style="margin-top:0"><a class="btn" href="#catalogo">Explorar o catálogo</a><a class="btn ghost" href="#patristica">Patrística</a><a class="btn ghost" href="#oracao-eucaristica">Oração Eucarística</a><a class="btn ghost" href="#acessibilidade">Conteúdo Dual Play</a></div></section>'+
-      (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos publicados</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
-      (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide">'+th+'</div></section>':'');
+      (spot?'<section class="section spotsec">'+spot+'</section>':'')+
+      (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
+      (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide">'+th+'</div></section>':'')+
+      recHtml();
   },
   sobre:function(){
     var SIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
@@ -417,13 +443,8 @@ var views={
     return head('Patrística')+'<div class="grid wide">'+Object.keys(D.patr).sort(function(a,b){return a-b}).map(function(m){return barTile('#patristica-'+m,'Módulo '+m,D.patr[m][0].capa,'patr'+m)}).join('')+'</div>';
   },
   acessibilidade:function(){
-    var dest=D.acess.map(function(a,i){return {a:a,i:i}}).filter(function(x){return x.a.destaque}).slice(0,3);
-    if(!dest.length) dest=D.acess.slice(0,3).map(function(a,i){return {a:a,i:i}});
-    var slides=dest.map(function(x,k){return '<a class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:linear-gradient(to top,rgba(6,14,34,.9),rgba(6,14,34,.1)),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
-    var dots=dest.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
     var g=D.acess.map(function(a,i){return videoTile('#video-acessibilidade-'+(i+1),a.titulo,a.capa,'ac'+i)}).join('');
-    return head('Conteúdo Dual Play')+
-      (dest.length?'<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>':'')+
+    return head('Conteúdo Dual Play')+spotHtml()+
       (g?'<div class="grid compact" style="margin-top:26px">'+g+'</div>':'<p class="note">Em breve.</p>');
   }
 };
