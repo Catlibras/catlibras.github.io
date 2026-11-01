@@ -54,7 +54,7 @@ function loadData(){
   if(!CFG.SHEET_ID) return Promise.resolve({raw:fromExample(ex),source:'exemplo'});
   var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos'];
   return Promise.all(tabs.map(function(t){return fetchTab(t).catch(function(){return null})})).then(function(r){
-    if(!r[0]&&!r[2]) return {raw:fromExample(ex),source:'exemplo'};
+    if(!r[0]&&!r[2]) throw new Error('offline');
     return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[]},source:'planilha'};
   });
 }
@@ -227,15 +227,27 @@ function applySpeed(r){speed=r;if(single&&single.p&&single.p.setPlaybackRate){tr
 
 /* ---------- dois vídeos com sincronização ---------- */
 var dual=null;
+/* Patrística: ao fim do vídeo, avisa e passa ao próximo em 5 segundos (dá para cancelar) */
+function autoNext(d,href){
+  if(d.an||dual!==d) return;
+  var n=5,box=document.createElement('div');box.className='autonext';box.setAttribute('role','status');
+  box.innerHTML='<p>Próximo vídeo em <b id="ancount">5</b> segundos.</p><a class="btn small" href="'+href+'">Ir agora</a><button type="button" class="btn small ghost" id="ancancel">Cancelar</button>';
+  var pg=$('.dualpage');if(!pg) return;pg.appendChild(box);
+  d.an=setInterval(function(){n--;var c=$('#ancount');if(c)c.textContent=n;if(n<=0){clearInterval(d.an);d.an=null;location.hash=href}},1000);
+  $('#ancancel').addEventListener('click',function(){clearInterval(d.an);d.an=null;box.remove()});
+}
 function stopDual(){
   if(!dual) return;
+  clearInterval(dual.an);
   clearInterval(dual.timer);
   [dual.o,dual.t].forEach(function(p){try{p&&p.destroy()}catch(e){}});
   dual=null;
 }
-function dualView(back,it,title,prev,next){
+function dualView(back,it,title,prev,next,canal){
   var home='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg>';
-  return '<div class="dualpage"><div class="dual"><div class="pair">'+
+  var sw=false;try{sw=localStorage.getItem('cl_swap')==='1'}catch(e){}
+  var cred='<p class="credit">Vídeo original'+(canal?' do canal '+esc(canal):'')+': <a href="https://youtu.be/'+esc(it.orig)+'" target="_blank" rel="noopener">assistir no YouTube</a>. Tradução em Libras: Catlibras.</p>';
+  return '<div class="dualpage"><div class="dual"><div class="pair'+(sw?' swap':'')+'">'+
     '<div class="frame live orig" id="fo">'+poster(it.orig,'Reproduzir os dois vídeos')+'</div>'+
     (it.terp?'<div class="frame live terp" id="ft">'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'<div class="frame live terp soonbox" id="ft"><span>Em breve - Tradução em Libras</span></div>')+
     '</div></div>'+
@@ -244,10 +256,11 @@ function dualView(back,it,title,prev,next){
     '<a class="btn small ghost" href="'+back+'">Voltar</a>'+
     (prev?'<a class="btn small ghost" href="'+prev+'" rel="prev"><span class="ar">《</span> Anterior</a>':'')+
     (next?'<a class="btn small ghost" href="'+next+'" rel="next">Próximo <span class="ar">》</span></a>':'')+
+    (it.terp?'<button type="button" class="btn small ghost" id="swp" aria-pressed="'+(sw?'true':'false')+'">'+(sw?'Original maior':'Intérprete maior')+'</button>':'')+
     waBtn((title?title+' ':'')+location.href)+
-    '</div></div>';
+    '</div>'+cred+'</div>';
 }
-function initDual(it){
+function initDual(it,nextHref){
   var fo=$('#fo'),ft=$('#ft'); if(!fo) return;
   var d=dual={o:null,t:null,timer:null,started:false,lastT:-1,stall:0,rate:1,it:it,apply:null};
   function oTime(){try{return d.o.getCurrentTime()||0}catch(e){return 0}}
@@ -280,7 +293,7 @@ function initDual(it){
     ytReady(function(){
       if(dual!==d) return;
       d.o=mkPlayer(so,it.orig,{autoplay:1,controls:1,title:'Vídeo original',
-        onState:function(s){if(s===0&&d.t){try{d.t.pauseVideo()}catch(e){}}},
+        onState:function(s){if(s===0&&d.t){try{d.t.pauseVideo()}catch(e){}}if(s===0&&nextHref) autoNext(d,nextHref)},
         onError:function(){unavailable(fo)}});
       if(st) d.t=mkPlayer(st,it.terp,{autoplay:0,controls:0,mute:1,start:Math.floor(it.ini||0),title:'Intérprete de Libras',
         onError:function(){unavailable(ft)}});
@@ -288,6 +301,12 @@ function initDual(it){
     });
   }
   d.start=start;
+  var sb=$('#swp');
+  if(sb) sb.addEventListener('click',function(){
+    var pr=$('.pair'),on=!pr.classList.contains('swap');
+    pr.classList.toggle('swap',on);sb.setAttribute('aria-pressed',on?'true':'false');sb.textContent=on?'Original maior':'Intérprete maior';
+    try{localStorage.setItem('cl_swap',on?'1':'0')}catch(e){}
+  });
   fo.addEventListener('click',function(e){if(e.target.closest('.poster'))start()});
   if(ft&&it.terp) ft.addEventListener('click',function(e){if(e.target.closest('.poster'))start()});
 }
@@ -403,7 +422,7 @@ function memberHtml(r){
   return '<div class="member">'+pw+'<div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(/^surd/.test(norm(role))?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
 }
 /* Temas na tela inicial: 5 por vez, em rodízio a cada abertura do app */
-var TEMAS_POR_VEZ=5,TEMA_INI=0;
+var TEMAS_POR_VEZ=3,TEMA_INI=0;
 try{TEMA_INI=parseInt(localStorage.getItem('cl_tema_ini'),10)||0;localStorage.setItem('cl_tema_ini',String(TEMA_INI+TEMAS_POR_VEZ))}catch(e){}
 function rodizio(list){
   var n=list.length;if(n<=TEMAS_POR_VEZ) return list;
@@ -411,18 +430,37 @@ function rodizio(list){
   for(i=0;i<n;i++) out.push(list[(st+i)%n]);
   return out;
 }
+var IC={
+  cat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
+  pat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg>',
+  euc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8a3.5 3.5 0 0 1 7 0"/><path d="M6.5 8h11v1.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 15v4.5"/><path d="M8 20.5h8"/></svg>',
+  dual:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="13" height="10" rx="1.5"/><rect x="9" y="10" width="12.5" height="9" rx="1.5" class="cut"/><path d="M13.5 12.5v4l3.5-2z" fill="currentColor"/></svg>',
+  lupa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  lua:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+  sol:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+};
+function stripHtml(){
+  function ci(h,t,ic,p){return '<a class="ci" href="'+h+'"><i'+(p?' class="p"':'')+'>'+ic+'</i>'+t+'</a>'}
+  return '<nav class="strip" aria-label="Seções">'+ci('#catalogo','Catálogo',IC.cat,1)+ci('#patristica','Patrística',IC.pat)+ci('#oracao-eucaristica','Oração Eucarística',IC.euc)+ci('#acessibilidade','Conteúdo Dual Play',IC.dual)+'</nav>';
+}
+function temasComSinais(){
+  return (D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
+}
 var views={
+  temas:function(){
+    var g=temasComSinais().map(themeTile).join('');
+    return head('Temas')+(g?'<div class="grid wide">'+g+'</div>':'<p class="note">Em breve.</p>');
+  },
   inicio:function(){
-    var hk=(D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
+    var hk=temasComSinais();
     var th=rodizio(hk).map(function(k,i){var t=themeTile(k);return i<TEMAS_POR_VEZ?t:t.replace(/^<a /,'<a hidden ')}).join('');
     var moreTh=hk.length>TEMAS_POR_VEZ?'<div class="morewrap"><button type="button" class="morebtn" id="moreth" aria-label="Mostrar mais temas" title="Mostrar mais temas">+</button></div>':'';
-    var RL=recentList(),PAGE=6,spot=spotHtml();
-    var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return i<PAGE?t:t.replace(/^<a /,'<a hidden ')}).join('');
-    var more=RL.length>PAGE?'<div class="morewrap"><button type="button" class="morebtn" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos">+</button></div>':'';
-    return '<section class="hero">'+
-      '<div class="search hero-search"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg>'+
-      '<input id="qh" type="search" placeholder="Buscar sinal pelo nome" autocomplete="off" aria-label="Buscar sinal pelo nome"><div id="resultsh" class="results" hidden></div></div>'+
-      '<div class="actions" style="margin-top:0"><a class="btn" href="#catalogo">Explorar o catálogo</a><a class="btn ghost" href="#patristica">Patrística</a><a class="btn ghost" href="#oracao-eucaristica">Oração Eucarística</a><a class="btn ghost" href="#acessibilidade">Conteúdo Dual Play</a></div></section>'+
+    var RL=recentList(),PAGE=5,spot=spotHtml();
+    var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos">+</button>';
+    var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return (i<PAGE?t:t.replace(/^<a /,'<a hidden '))+(i===PAGE-1&&RL.length>PAGE?PLUS:'')}).join('');
+    var more='';
+    return '<section class="hero">'+stripHtml()+'</section>'+
       (spot?'<section class="section spotsec">'+spot+'</section>':'')+
       (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
       (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide" id="temasgrid">'+th+'</div>'+moreTh+'</section>':'')+
@@ -438,7 +476,7 @@ var views={
     var txt=D.cfg.texto_sobre?'<p>'+esc(D.cfg.texto_sobre).replace(/\n+/g,'</p><p>')+'</p>':
       '<p>Em 2016, durante um intercâmbio de experiências entre intérpretes católicos de LIBRAS da Arquidiocese de Brasília, surgiu o desejo de reunir os estudos e reflexões acumulados ao longo dos anos sobre a vivência da fé em LIBRAS.</p>'+
       '<p>Formou-se então um grupo de trabalho, composto majoritariamente por surdos engajados na missão evangelizadora, junto a intérpretes comprometidos com o discipulado. Com dedicação e amor à Igreja, o grupo se empenhou na validação dos sinais com participação ativa da comunidade surda.</p>'+
-      '<p>O CatLibras não tem como objetivo padronizar os sinais, mas sim catalogar aqueles utilizados e compreendidos pela comunidade surda católica. Deseja ser uma fonte confiável e pastoral, acessível a todos os que buscam servir e viver a fé de forma inclusiva. É um passo concreto rumo a uma Igreja mais acolhedora, onde surdos e intérpretes caminham juntos como discípulos missionários.</p>';
+      '<p>O Catlibras não tem como objetivo padronizar os sinais, mas sim catalogar aqueles utilizados e compreendidos pela comunidade surda católica. Deseja ser uma fonte confiável e pastoral, acessível a todos os que buscam servir e viver a fé de forma inclusiva. É um passo concreto rumo a uma Igreja mais acolhedora, onde surdos e intérpretes caminham juntos como discípulos missionários.</p>';
     return head('Sobre')+'<div class="about">'+txt+'</div>'+entidadesHtml();
   },
   equipe:function(){
@@ -450,7 +488,7 @@ var views={
   },
   contato:function(){
     var TGICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
-    var items=[['Canal no WhatsApp',D.cfg.contato_whatsapp||DEF_WHATS,WAICON],['Fórum CatLIBRAS no Telegram',D.cfg.contato_telegram||DEF_TELEGRAM,TGICON]];
+    var items=[['Canal no WhatsApp',D.cfg.contato_whatsapp||DEF_WHATS,WAICON],['Fórum Catlibras no Telegram',D.cfg.contato_telegram||DEF_TELEGRAM,TGICON]];
     var h=items.filter(function(x){return /^https:\/\//i.test(String(x[1]).trim())}).map(function(x){
       return '<div class="contato-item"><h2>'+esc(x[0])+'</h2><a class="btn wa contato-ic" href="'+esc(String(x[1]).trim())+'" target="_blank" rel="noopener" aria-label="'+esc(x[0])+'" title="'+esc(x[0])+'">'+x[2]+'</a></div>';
     }).join('');
@@ -458,7 +496,7 @@ var views={
   },
   catalogo:function(){
     var L='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    return head('Escolha a letra')+'<div class="grid letters">'+L.map(function(c){return '<a class="tile letter" href="#letra-'+c.toLowerCase()+'" aria-label="Letra '+c+'"><span class="ltr">'+c+'</span></a>'}).join('')+'</div>';
+    return head('Escolha a letra')+'<div class="area" id="larea"><div class="letters fit" id="lgrid">'+L.map(function(c){return '<a class="lt" href="#letra-'+c.toLowerCase()+'" aria-label="Letra '+c+'">'+c+'</a>'}).join('')+'<a class="lt tema" href="#temas">Por tema</a></div></div>';
   },
   'oracao-eucaristica':function(){
     return head('Oração Eucarística')+'<div class="grid wide">'+D.euc.map(function(e){return barTile('#eucaristica-'+slug(e.num),'Oração Eucarística '+e.num,e.capa,'euc'+e.num)}).join('')+'</div>';
@@ -509,47 +547,60 @@ function patrView(m){
   return head('Patrística · Módulo '+esc(m))+'<div class="grid compact">'+l.map(function(v,i){return videoTile('#video-patristica-'+m+'-'+(i+1),v.nome,v.capa,'p'+m+'-'+i)}).join('')+'</div>';
 }
 
+/* ---------- endereço da página (migalhas) ---------- */
+function crumbsHtml(list){
+  return '<nav class="crumbs" aria-label="Você está em"><ol>'+list.map(function(c,i){
+    return i===list.length-1?'<li aria-current="page">'+esc(c[0])+'</li>':'<li><a href="'+c[1]+'">'+esc(c[0])+'</a></li>';
+  }).join('')+'</ol></nav>';
+}
+
 /* ---------- rotas ---------- */
 function render(){
   stopDual();stopSingle();
-  var h=(location.hash||'#inicio').slice(1),html,nav='',after=null,mt;
+  var h=(location.hash||'#inicio').slice(1),html,nav='',after=null,mt,home=false,cr=[['Início','#inicio']];
   pageStart=Date.now();
   if((mt=h.match(/^tema-(.+)$/))&&D.temas[mt[1]]){
-    lastTheme=mt[1];var k=mt[1],list=sorted(D.sinais.filter(function(s){return s.temas.indexOf(k)>-1}));
+    lastTheme=mt[1];var k=mt[1];cr.push(['Temas','#temas'],[D.temas[k].nome]);var list=sorted(D.sinais.filter(function(s){return s.temas.indexOf(k)>-1}));
     html='<p class="eyebrow">Tema</p><h1>'+esc(D.temas[k].nome)+'</h1>'+(D.temas[k].desc?'<p class="lead">'+esc(D.temas[k].desc)+'. Em ordem alfabética.</p>':'')+'<hr class="rule" style="margin-top:20px"><div class="grid compact">'+list.map(function(s){return signTile(s,false)}).join('')+'</div>';
   } else if((mt=h.match(/^letra-([a-z])$/))){
-    lastTheme=null;var c=mt[1],C=c.toUpperCase();
+    lastTheme=null;var c=mt[1],C=c.toUpperCase();cr.push(['Catálogo','#catalogo'],['Letra '+C]);
     var ll=sorted(D.sinais.filter(function(s){return [s.nome].concat(s.outros).some(function(n){return chave(n).charAt(0)===c})}));
     html=head('Letra '+C)+(ll.length?'<div class="grid compact">'+ll.map(function(s){return signTile(s,false)}).join('')+'</div>':'<p class="note">Ainda não há sinais com a letra '+C+'.</p>');
     nav='catalogo';
   } else if((mt=h.match(/^sinal-(.+)$/))&&byId(mt[1])){
     var s=byId(mt[1]);html=sinalView(s);nav='catalogo';
+    if(s.temas[0]) cr.push(['Temas','#temas'],[D.temas[s.temas[0]].nome,'#tema-'+s.temas[0]],[label(s)]); else cr.push(['Catálogo','#catalogo'],[label(s)]);
     after=function(){
       var fr=$('#sf'),ps=$('.poster',fr);
       if(ps) ps.addEventListener('click',function(){mountSingle(fr,s.yt,s.titulo)});
       initComments('sinal-'+s.id);
     };
   } else if((mt=h.match(/^eucaristica-(.+)$/))&&D.euc.filter(function(e){return slug(e.num)===mt[1]})[0]){
-    var e=D.euc.filter(function(x){return slug(x.num)===mt[1]})[0];html=eucView(e);nav='oracao';after=function(){initComments('eucaristica-'+slug(e.num))};
+    var e=D.euc.filter(function(x){return slug(x.num)===mt[1]})[0];html=eucView(e);nav='oracao';cr.push(['Oração Eucarística','#oracao-eucaristica'],['Oração Eucarística '+e.num]);after=function(){initComments('eucaristica-'+slug(e.num))};
   } else if((mt=h.match(/^patristica-(\d+)$/))&&D.patr[mt[1]]){
-    html=patrView(mt[1]);nav='patristica';
+    html=patrView(mt[1]);nav='patristica';cr.push(['Patrística','#patristica'],['Módulo '+mt[1]]);
   } else if((mt=h.match(/^video-patristica-(\d+)-(\d+)$/))&&D.patr[mt[1]]&&D.patr[mt[1]][mt[2]-1]){
-    var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='patristica';after=function(){initDual(v)};
+    var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='patristica';cr.push(['Patrística','#patristica'],['Módulo '+pm,'#patristica-'+pm],[v.nome]);var nxh=pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'';after=function(){initDual(v,nxh)};
   } else if((mt=h.match(/^video-acessibilidade-(\d+)$/))&&D.acess[mt[1]-1]){
-    var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'');nav='acessibilidade';after=function(){initDual(a)};
+    var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'',a.canal);nav='acessibilidade';cr.push(['Conteúdo Dual Play','#acessibilidade'],[a.titulo]);after=function(){initDual(a)};
   } else if(views[h]){
     html=views[h]();nav=({catalogo:'catalogo','oracao-eucaristica':'oracao',patristica:'patristica',acessibilidade:'acessibilidade'})[h]||'';
-  } else { html=views.inicio(); }
-  app.innerHTML=html;
-  var hq=$('#qh'); if(hq) setupSearch(hq,$('#resultsh'));
-  $('nav.menu').hidden=!!hq;
+    home=(h==='inicio');
+    var NM={catalogo:'Catálogo',temas:'Temas','oracao-eucaristica':'Oração Eucarística',patristica:'Patrística',acessibilidade:'Conteúdo Dual Play',sobre:'Sobre',equipe:'Nossa equipe',contato:'Contato'};
+    if(!home) cr.push([NM[h]||h]);
+  } else { html=views.inicio();home=true; }
+  app.innerHTML=(home?'':crumbsHtml(cr))+html;
+  $('.navrow').hidden=home;
+  closeSearch();
   document.body.classList.toggle('watch',h.indexOf('video-')===0);
-  document.body.classList.toggle('home',!!hq);
+  document.body.classList.toggle('home',home);
   document.body.classList.toggle('solopage',h.indexOf('sinal-')===0);
   document.querySelectorAll('nav.menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   closeVideo();initSpot();maybeInstBar();
+  if(h==='catalogo') fitLetters();
   if(after) after();
   window.scrollTo(0,0);
+  hit(h);
 }
 var spotTimer=null;
 function initSpot(){
@@ -579,9 +630,10 @@ document.addEventListener('click',function(e){
   var sp=e.target.closest&&e.target.closest('[data-speed]');
   if(sp){sp.parentNode.querySelectorAll('[data-speed]').forEach(function(b){b.setAttribute('aria-pressed',b===sp?'true':'false')});applySpeed(parseFloat(sp.getAttribute('data-speed')))}
   if(e.target.closest&&e.target.closest('#more')){
-    var hid=document.querySelectorAll('#recent > [hidden]'),n=Math.min(6,hid.length),i;
+    var hid=document.querySelectorAll('#recent > a[hidden]'),n=Math.min(5,hid.length),i,pl=$('#more');
     for(i=0;i<n;i++) hid[i].hidden=false;
-    if(hid.length<=6){var mb=$('#more');if(mb) mb.parentNode.remove()}
+    var rest=document.querySelectorAll('#recent > a[hidden]');
+    if(pl){ if(rest.length) pl.parentNode.insertBefore(pl,rest[0]); else pl.remove(); }
   }
   if(e.target.closest&&e.target.closest('#moreth')){
     document.querySelectorAll('#temasgrid > [hidden]').forEach(function(t){t.hidden=false});
@@ -595,18 +647,38 @@ document.addEventListener('click',function(e){
 
 /* ---------- busca ---------- */
 function closeAll(){document.querySelectorAll('.results').forEach(function(r){r.hidden=true;r.innerHTML=''})}
+var searchInit=false;
+function openSearch(){
+  var t=$('#top'),q=$('#qh');t.classList.add('sopen');$('#lupa').innerHTML=IC.x;$('#lupa').setAttribute('aria-label','Fechar busca');$('#lupa').setAttribute('aria-expanded','true');
+  if(q) q.focus();
+}
+function closeSearch(){
+  var t=$('#top'),q=$('#qh');if(!t||!t.classList.contains('sopen')) return;
+  t.classList.remove('sopen');$('#lupa').innerHTML=IC.lupa;$('#lupa').setAttribute('aria-label','Buscar');$('#lupa').setAttribute('aria-expanded','false');
+  if(q) q.value='';closeAll();
+}
+function initHeader(){
+  setupSearch($('#qh'),$('#resultsh'));
+  $('#lupa').addEventListener('click',function(){if($('#top').classList.contains('sopen')) closeSearch(); else openSearch()});
+  $('#dado').addEventListener('click',function(){
+    var pool=D.sinais.filter(function(x){return !x.soon&&('#sinal-'+x.id)!==location.hash});
+    if(!pool.length) return;
+    location.hash='#sinal-'+pool[Math.floor(Math.random()*pool.length)].id;
+  });
+}
 function setupSearch(q,res){
+  if(searchInit) return; searchInit=true;
   q.addEventListener('input',function(){
     var v=norm(q.value);
     if(!v){closeAll();return}
     var hit=sorted(D.sinais.filter(function(s){return norm(label(s)).indexOf(v)>-1||norm(s.titulo).indexOf(v)>-1||norm(s.sinonimos).indexOf(v)>-1})).sort(function(a,b){return (a.soon?1:0)-(b.soon?1:0)}).slice(0,8);
-    res.innerHTML=hit.length?hit.map(function(s){var sm='<small>'+(s.soon?'Em breve':esc(s.temas.map(function(k){return D.temas[k].nome}).join(', ')))+'</small>';return s.soon?'<span class="soonres">'+esc(label(s))+sm+'</span>':'<a href="#sinal-'+s.id+'">'+esc(label(s))+sm+'</a>'}).join(''):'<p>Nenhum sinal encontrado.</p>';
+    res.innerHTML=hit.length?hit.map(function(s){var sm='<small>'+(s.soon?'Em breve':esc(s.temas.map(function(k){return D.temas[k].nome}).join(', ')))+'</small>';return s.soon?'<span class="soonres">'+esc(label(s))+sm+'</span>':'<a href="#sinal-'+s.id+'"><img class="rth" src="'+thumb(s.yt)+'" alt="" loading="lazy" onerror="this.remove()"><span>'+esc(label(s))+sm+'</span></a>'}).join(''):'<p>Nenhum sinal encontrado.</p>';
     res.hidden=false;
   });
-  q.addEventListener('keydown',function(e){if(e.key==='Escape'){closeAll();q.blur()}});
-  res.addEventListener('click',function(){setTimeout(function(){q.value='';closeAll()},0)});
+  q.addEventListener('keydown',function(e){if(e.key==='Escape'){closeSearch();var lb=$('#lupa');if(lb)lb.focus()}});
+  res.addEventListener('click',function(){setTimeout(closeSearch,0)});
 }
-document.addEventListener('click',function(e){if(!e.target.closest('.search'))closeAll()});
+document.addEventListener('click',function(e){if(!e.target.closest('.search')&&!e.target.closest('#lupa'))closeAll()});
 
 /* ---------- instalar na tela inicial ---------- */
 var deferredInstall=null,installDismissed=false;
@@ -628,7 +700,7 @@ function showInstBar(forceHelp){
   });
   $('#instno').addEventListener('click',function(){installDismissed=true;removeInstBar()});
 }
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;if(!standalone()&&!installDismissed&&$('#qh')) showInstBar()});
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;if(!standalone()&&!installDismissed&&document.body.classList.contains('home')) showInstBar()});
 window.addEventListener('appinstalled',function(){deferredInstall=null;removeInstBar();var l=$('#instl');if(l) l.hidden=true});
 var instl=$('#instl');
 if(instl&&!standalone()){
@@ -638,7 +710,7 @@ if(instl&&!standalone()){
 /* a cada abertura do site, na página inicial, a pergunta volta (em iPhone, só a orientação) */
 function maybeInstBar(){
   removeInstBar();
-  if(standalone()||installDismissed||!$('#qh')) return;
+  if(standalone()||installDismissed||!document.body.classList.contains('home')) return;
   if(deferredInstall||isIOS()) showInstBar();
 }
 
@@ -654,14 +726,75 @@ function entidadesHtml(){
   return h?'<div class="entidades">'+h+'</div>':'';
 }
 
+/* ---------- tema claro / noturno ---------- */
+function curTheme(){return document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'}
+function paintTheme(){
+  var d=curTheme()==='dark',m=document.querySelector('meta[name="theme-color"]');
+  if(m) m.setAttribute('content',d?'#08142b':'#f0e4c8');
+  var i=$('#tgi'),t=$('#tgt');if(i) i.innerHTML=d?IC.sol:IC.lua;if(t) t.textContent=d?'Tema claro':'Tema noturno';
+}
+var tgl=$('#tgl');
+if(tgl) tgl.addEventListener('click',function(){
+  var n=curTheme()==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  try{localStorage.setItem('cl_theme',n)}catch(e){}
+  paintTheme();
+});
+paintTheme();
+
+/* ---------- visitas (GoatCounter): cada página do site conta como uma visita ---------- */
+function hit(h){
+  var path='/'+(h||'inicio'),n=0;
+  (function go(){
+    if(window.goatcounter&&window.goatcounter.count){window.goatcounter.count({path:path,title:document.title,event:false});return}
+    if(n++<8) setTimeout(go,600);
+  })();
+}
+
+/* ---------- alfabeto: escolhe as colunas que dão o maior quadrado na tela ---------- */
+function fitLetters(){
+  var a=$('#larea'),l=$('#lgrid');if(!a||!l) return;
+  var g=8,W=a.clientWidth,top=a.getBoundingClientRect().top,H=window.innerHeight-top-16,best=0,bc=4,br=7,c,r,s;
+  for(c=3;c<=13;c++){r=Math.ceil(28/c);s=Math.min((W-(c-1)*g)/c,(H-(r-1)*g)/r);if(s>best){best=s;bc=c;br=r}}
+  if(best<44){ /* tela muito baixa: quadrados de tamanho mínimo e a página rola */
+    bc=Math.max(3,Math.min(13,Math.floor((W+g)/(56+g))));br=Math.ceil(28/bc);best=Math.min(72,(W-(bc-1)*g)/bc);
+  }
+  best=Math.min(best,120);
+  l.style.setProperty('--c',bc);l.style.setProperty('--r',br);l.style.setProperty('--s',Math.floor(best)+'px');
+}
+window.addEventListener('resize',fitLetters);window.addEventListener('orientationchange',function(){setTimeout(fitLetters,200)});
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fitLetters);
+
+/* ---------- deslizar para o lado na página do sinal: anterior / próximo ---------- */
+(function(){
+  var x0=0,y0=0,on=false;
+  document.addEventListener('touchstart',function(e){
+    on=location.hash.indexOf('#sinal-')===0&&e.touches.length===1&&!(e.target.closest&&e.target.closest('iframe,input,textarea,.seg,.recrow'));
+    if(on){x0=e.touches[0].clientX;y0=e.touches[0].clientY}
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!on) return;on=false;
+    var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+    if(Math.abs(dx)<70||Math.abs(dy)>45) return;
+    var a=dx<0?$('.pn a.nx'):$('.pn a:not(.nx)');
+    if(a) location.hash=a.getAttribute('href');
+  },{passive:true});
+})();
+
 /* ---------- início ---------- */
 var foot=$('.foot-in a.btn');if(foot&&CFG.CANAL_URL) foot.href=CFG.CANAL_URL;
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){})}
-app.innerHTML='<p class="note" style="padding:40px 0">Carregando...</p>';
+app.innerHTML='<div class="skel" aria-busy="true" aria-label="Carregando"><span class="sk h"></span><div class="skg"><span class="sk"></span><span class="sk"></span><span class="sk"></span><span class="sk"></span></div></div>';
+document.body.classList.add('home');$('.navrow').hidden=true;
 loadData().then(function(r){
   D.raw=r.raw;buildModel(r.raw);
+  initHeader();
   window.addEventListener('hashchange',render);
   render();
-}).catch(function(){app.innerHTML='<p class="note">Não foi possível carregar o catálogo agora. Tente novamente em instantes.</p>'});
+}).catch(function(){
+  $('.navrow').hidden=true;
+  app.innerHTML='<div class="offline"><img src="'+(curTheme()==='dark'?'logo.svg':'logo-claro.svg')+'" alt="Catlibras"><p>Não foi possível carregar o catálogo agora. Verifique a conexão com a internet e tente de novo.</p><button type="button" class="btn" id="retry">Tentar de novo</button></div>';
+  $('#retry').addEventListener('click',function(){location.reload()});
+});
 window.__catlibras={D:D};
 })();
