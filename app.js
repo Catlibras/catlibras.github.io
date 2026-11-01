@@ -455,9 +455,9 @@ var views={
   inicio:function(){
     var hk=temasComSinais();
     var th=rodizio(hk).map(function(k,i){var t=themeTile(k);return i<TEMAS_POR_VEZ?t:t.replace(/^<a /,'<a hidden ')}).join('');
-    var moreTh=hk.length>TEMAS_POR_VEZ?'<div class="morewrap"><button type="button" class="morebtn" id="moreth" aria-label="Mostrar mais temas" title="Mostrar mais temas">+</button></div>':'';
+    var moreTh=hk.length>TEMAS_POR_VEZ?'<div class="morewrap"><button type="button" class="morebtn" id="moreth" aria-label="Mostrar mais temas" title="Mostrar mais temas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>':'';
     var RL=recentList(),PAGE=5,spot=spotHtml();
-    var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos">+</button>';
+    var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return (i<PAGE?t:t.replace(/^<a /,'<a hidden '))+(i===PAGE-1&&RL.length>PAGE?PLUS:'')}).join('');
     var more='';
     return '<section class="hero">'+stripHtml()+'</section>'+
@@ -528,7 +528,7 @@ function sinalView(s){
     var flag=code?'<span class="flag" style="background:#1d2f5c">'+esc(code.slice(0,3).toUpperCase())+'<img src="bandeiras/'+esc(code.toUpperCase())+'.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()"></span>':'';
     return '<a class="tile cov" href="#" data-video="'+esc(lugar)+'" data-yt="'+id+'">'+cover({img:thumb(id),x:'50%',y:'50%',z:1},id)+flag+'<span class="play">'+PLAY+'</span><span class="name">'+esc(lugar)+'</span></a>';
   }).join('');
-  return '<div class="sp"><p class="eyebrow">Sinal</p><h1>'+esc(label(s))+'</h1>'+(tags?'<ul class="tags">'+tags+'</ul>':'')+
+  return '<div class="sp"><h1 class="sr">'+esc(label(s))+'</h1>'+
     '<div class="solo"><div class="frame live" id="sf">'+poster(s.yt,'Reproduzir '+label(s))+'</div>'+
     vctl(waBtn('https://youtu.be/'+s.yt))+pn+'</div>'+
     (reg?'<section class="section"><div class="section-head"><h2>Variações</h2></div><hr class="rule"><div class="grid small">'+reg+'</div></section>':'')+
@@ -590,13 +590,13 @@ function render(){
     if(!home) cr.push([NM[h]||h]);
   } else { html=views.inicio();home=true; }
   app.innerHTML=(home?'':crumbsHtml(cr))+html;
-  $('.navrow').hidden=home;
+  $('#menu').hidden=home;
   closeSearch();
   document.body.classList.toggle('watch',h.indexOf('video-')===0);
   document.body.classList.toggle('home',home);
   document.body.classList.toggle('letras',h==='catalogo');
   document.body.classList.toggle('solopage',h.indexOf('sinal-')===0);
-  document.querySelectorAll('nav.menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+  document.querySelectorAll('#menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   closeVideo();initSpot();maybeInstBar();
   if(h==='catalogo') fitLetters();
   if(after) after();
@@ -785,14 +785,14 @@ window.addEventListener('resize',refitLetters);window.addEventListener('orientat
 var foot=$('.foot-in a.btn');if(foot&&CFG.CANAL_URL) foot.href=CFG.CANAL_URL;
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){})}
 app.innerHTML='<div class="skel" aria-busy="true" aria-label="Carregando"><span class="sk h"></span><div class="skg"><span class="sk"></span><span class="sk"></span><span class="sk"></span><span class="sk"></span></div></div>';
-document.body.classList.add('home');$('.navrow').hidden=true;
+document.body.classList.add('home');$('#menu').hidden=true;
 loadData().then(function(r){
   D.raw=r.raw;buildModel(r.raw);
   initHeader();
   window.addEventListener('hashchange',render);
   render();
 }).catch(function(){
-  $('.navrow').hidden=true;
+  $('#menu').hidden=true;
   app.innerHTML='<div class="offline"><img src="'+(curTheme()==='dark'?'logo.svg':'logo-claro.svg')+'" alt="Catlibras"><p>Não foi possível carregar o catálogo agora. Verifique a conexão com a internet e tente de novo.</p><button type="button" class="btn" id="retry">Tentar de novo</button></div>';
   $('#retry').addEventListener('click',function(){location.reload()});
 });

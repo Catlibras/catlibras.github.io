@@ -59,6 +59,7 @@
   --box:rgba(255,255,255,.5);--soft:rgba(255,255,255,.55);--ring:rgba(143,102,20,.65);
   --ic1:#f6ecd0;--ic2:#e2d0a3;--icfg:#7a560f;--trk:rgba(22,41,79,.16);
   --spotgrad:linear-gradient(to top,rgba(88,60,10,.94),rgba(112,80,18,.12));
+  --cg-a:88,60,10;--cg-b:112,80,18;
   --font-ui:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
   --font-label:'Cinzel','Trajan Pro',Georgia,serif;
@@ -74,13 +75,14 @@
   --box:rgba(13,32,72,.55);--soft:rgba(255,255,255,.07);--ring:rgba(212,165,42,.6);
   --ic1:#102f66;--ic2:#0b1b3a;--icfg:#e7c872;--trk:rgba(255,255,255,.12);
   --spotgrad:linear-gradient(to top,rgba(6,14,34,.9),rgba(6,14,34,.1));
+  --cg-a:6,14,34;--cg-b:6,14,34;
   color-scheme:dark;
 }
 /* Cartões, vídeos, destaque e janela de vídeo mantêm fundo azul-escuro nos dois temas */
 .tile,.frame,.spot,.overlay{--navy:#0b1b3a;--navy-2:#0f2a58;--royal:#0f3a7a;--gold:#d4a52a;--gold-soft:#e7c872;--silver:#c9cdd3;--ice:#eef1f6;--muted:#9aa6bd;--line:rgba(201,205,211,.16);color:#eef1f6}
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
-body{margin:0;min-height:100%;color:var(--ice);font-family:var(--font-ui);font-size:16px;line-height:1.55;
+body{margin:0;min-height:100dvh;color:var(--ice);font-family:var(--font-ui);font-size:16px;line-height:1.55;
   background-color:var(--bg);
   background-image:var(--pagebg);
   background-repeat:no-repeat;background-size:100% 100%}
@@ -258,9 +260,9 @@ body.watch main{max-width:none;padding-block:12px 48px}
 
 /* Capas dos cartões quadrados: o título fica sobre um degradê escuro */
 .tile.cov .cover{position:absolute;inset:0;z-index:0;transform:scale(var(--z,1));transform-origin:var(--x,50%) var(--y,50%);background-position:var(--x,50%) var(--y,50%);background-repeat:no-repeat}
-.tile.theme.cov::before{height:100%;background:linear-gradient(to right,rgba(88,60,10,.95) 0%,rgba(112,80,18,.78) 48%,rgba(112,80,18,0) 100%)}
+.tile.theme.cov::before{height:100%;background:linear-gradient(to right,rgba(var(--cg-a),.96) 0%,rgba(var(--cg-b),.8) 48%,rgba(var(--cg-b),0) 100%)}
 .tile.theme.cov::after{display:none}
-.tile.cov::before{content:"";position:absolute;left:0;right:0;bottom:0;height:66%;background:linear-gradient(to top,rgba(88,60,10,.96) 0%,rgba(112,80,18,.8) 42%,rgba(112,80,18,0) 100%);z-index:1;pointer-events:none}
+.tile.cov::before{content:"";position:absolute;left:0;right:0;bottom:0;height:66%;background:linear-gradient(to top,rgba(var(--cg-a),.96) 0%,rgba(var(--cg-b),.82) 42%,rgba(var(--cg-b),0) 100%);z-index:1;pointer-events:none}
 .tile.cov .name,.tile.cov .sub{position:relative;z-index:2}
 .tile.cov .play,.tile.cov .flag{z-index:2}
 .tile.cov .play{background:rgba(8,20,43,.6)}
@@ -398,7 +400,7 @@ a.pw:hover .photo{border-color:var(--gold)}
 }
 /* Mais vídeos */
 .morewrap{display:flex;justify-content:center;margin-top:18px}
-.morebtn{width:52px;height:52px;padding:0;justify-content:center;font-size:28px;line-height:1;font-weight:400;background:var(--chip);color:var(--chipfg);border:1px solid var(--gold);border-radius:50%;cursor:pointer;font-family:var(--font-ui)}
+.morebtn{width:52px;height:52px;padding:0;justify-content:center;display:inline-grid;place-items:center;font-size:28px;line-height:1;font-weight:400;background:var(--chip);color:var(--chipfg);border:1px solid var(--gold);border-radius:50%;cursor:pointer;font-family:var(--font-ui)}
 .morebtn:hover{background:var(--chip-h)}
 /* Instalar na tela inicial */
 .instbar{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:50;max-width:520px;margin-inline:auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;background:var(--chip);border:1px solid var(--gold);border-radius:6px;box-shadow:0 12px 32px rgba(0,0,0,.5);font-size:14.5px}
@@ -441,7 +443,7 @@ a.pw:hover .photo{border-color:var(--gold)}
 .brand .logo-d{display:none}
 :root[data-theme="dark"] .brand .logo-d{display:block}
 :root[data-theme="dark"] .brand .logo-l{display:none}
-.top .wrap.hrow{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:10px;padding-block:8px;position:relative}
+.top .wrap.hrow{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;padding-block:8px;position:relative}
 .top .brand{flex:1 1 auto;min-width:0;display:block;text-align:left}
 .top .brand img{height:40px;width:auto;max-width:100%;object-fit:contain;object-position:left center}
 .rb{display:flex;gap:8px;flex:none;margin-left:auto}
@@ -482,7 +484,7 @@ button.tile{font:inherit;cursor:pointer}
 #recent{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 #recent .tile{padding:8px}
 #recent .tile .name{font-size:12.5px}
-#recent .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;font-size:30px}
+#recent .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;display:grid;place-items:center}
 @media (min-width:1000px){#recent{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .tg{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--gold);padding:0;border-radius:50%!important;border-radius:4px;background:transparent;font:inherit;font-size:14px;color:var(--silver);cursor:pointer}
 .tg:hover{border-color:var(--gold)}
@@ -498,7 +500,7 @@ button.tile{font:inherit;cursor:pointer}
 .lt:hover{box-shadow:0 0 0 1px var(--gold)}
 .lt.tema{background:var(--btn);border-color:var(--btn);color:var(--btn-ink);font-family:var(--font-ui);font-weight:800;font-size:calc(var(--s,64px) * .3);text-align:center;line-height:1.1;grid-column:-3 / -1;grid-row:var(--r,7)}
 body.letras main{padding-bottom:14px}
-@media (min-aspect-ratio:1/1){body.letras .top,body.letras main h1,body.letras main .rule{display:none}body.letras main{padding-top:10px}}
+@media (min-aspect-ratio:1/1){body.letras main h1,body.letras main .rule{display:none}body.letras main{padding-top:10px}}
 body.letras footer.foot{margin-top:6px}
 /* Carregando (esqueleto) e sem conexão */
 .skel{padding-top:8px}
@@ -523,6 +525,20 @@ body.letras footer.foot{margin-top:6px}
   .pair.swap .frame.terp{left:0;top:0;height:auto;width:77.32%;aspect-ratio:16/9;z-index:1;box-shadow:none}
   .pair.swap .terp .yt,.pair.swap .terp .poster{left:0;width:100%}
 }
+
+/* Menu em ícones pequenos (páginas internas) */
+.top .menu{order:3;flex:1 0 100%;display:flex;justify-content:center;gap:10px;margin:0;padding-bottom:2px}
+.top .menu a.ib.mi{text-decoration:none;padding:0;border:1px solid var(--gold);width:40px;height:40px;color:var(--gold-soft)}
+.top .menu a.ib.mi[aria-current="page"]{border-color:var(--btn);color:var(--btn-ink)}
+.ib.mi:hover{background:var(--chip)}
+.ib.mi[aria-current="page"]{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
+.mi .cut{fill:var(--hdr)}
+.mi:hover .cut{fill:var(--chip)}
+.mi[aria-current="page"] .cut{fill:var(--btn)}
+.top.sopen .menu{display:none}
+@media (min-aspect-ratio:1/1){.top .menu{order:0;flex:1 1 auto}.top .brand{flex:0 0 auto}.top.sopen .menu{display:none}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tile.plus svg,.morebtn svg{width:26px;height:26px;display:block;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
 </style>
 </head>
 <body>
@@ -530,17 +546,12 @@ body.letras footer.foot{margin-top:6px}
   <div class="wrap hrow">
     <a class="brand" href="#inicio" aria-label="Catlibras, Sinais católicos, página inicial"><img class="logo-l" src="logo-claro.svg" alt="Catlibras, Sinais católicos"><img class="logo-d" src="logo.svg" alt="" aria-hidden="true"></a>
     <div class="search sfield" id="sfield"><div class="sbox"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg><input id="qh" type="search" placeholder="Buscar sinal pelo nome" autocomplete="off" aria-label="Buscar sinal pelo nome"></div><div id="resultsh" class="results" hidden></div></div>
+    <nav class="menu" id="menu" aria-label="Principal"><a class="ib mi" href="#catalogo" data-nav="catalogo" aria-label="Catálogo" title="Catálogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></a><a class="ib mi" href="#patristica" data-nav="patristica" aria-label="Patrística" title="Patrística"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg></a><a class="ib mi" href="#oracao-eucaristica" data-nav="oracao" aria-label="Oração Eucarística" title="Oração Eucarística"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8a3.5 3.5 0 0 1 7 0"/><path d="M6.5 8h11v1.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 15v4.5"/><path d="M8 20.5h8"/></svg></a><a class="ib mi" href="#acessibilidade" data-nav="acessibilidade" aria-label="Conteúdo Dual Play" title="Conteúdo Dual Play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="13" height="10" rx="1.5"/><rect x="9" y="10" width="12.5" height="9" rx="1.5" class="cut"/><path d="M13.5 12.5v4l3.5-2z" fill="currentColor"/></svg></a></nav>
     <div class="rb">
       <button class="ib" id="dado" type="button" aria-label="Sinal surpresa" title="Sinal surpresa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.1" fill="currentColor"/></svg></button>
       <button class="ib" id="lupa" type="button" aria-label="Buscar" aria-expanded="false" title="Buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></button>
     </div>
   </div>
-  <div class="wrap navrow"><nav class="menu" aria-label="Principal">
-      <a href="#catalogo" data-nav="catalogo">Catálogo</a>
-      <a href="#patristica" data-nav="patristica">Patrística</a>
-      <a href="#oracao-eucaristica" data-nav="oracao">Oração Eucarística</a>
-      <a href="#acessibilidade" data-nav="acessibilidade">Conteúdo Dual Play</a>
-  </nav></div>
 </header>
 
 <main class="wrap" id="app"></main>
