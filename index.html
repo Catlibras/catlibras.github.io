@@ -256,9 +256,9 @@ body.watch main{max-width:none;padding-block:12px 48px}
 
 /* Capas dos cartões quadrados: o título fica sobre um degradê escuro */
 .tile.cov .cover{position:absolute;inset:0;z-index:0;transform:scale(var(--z,1));transform-origin:var(--x,50%) var(--y,50%);background-position:var(--x,50%) var(--y,50%);background-repeat:no-repeat}
-.tile.theme.cov::before{height:100%;background:linear-gradient(to right,rgba(6,14,34,.96) 0%,rgba(6,14,34,.8) 48%,rgba(6,14,34,0) 100%)}
+.tile.theme.cov::before{height:100%;background:linear-gradient(to right,rgba(88,60,10,.95) 0%,rgba(112,80,18,.78) 48%,rgba(112,80,18,0) 100%)}
 .tile.theme.cov::after{display:none}
-.tile.cov::before{content:"";position:absolute;left:0;right:0;bottom:0;height:66%;background:linear-gradient(to top,rgba(6,14,34,.96) 0%,rgba(6,14,34,.82) 42%,rgba(6,14,34,0) 100%);z-index:1;pointer-events:none}
+.tile.cov::before{content:"";position:absolute;left:0;right:0;bottom:0;height:66%;background:linear-gradient(to top,rgba(88,60,10,.96) 0%,rgba(112,80,18,.8) 42%,rgba(112,80,18,0) 100%);z-index:1;pointer-events:none}
 .tile.cov .name,.tile.cov .sub{position:relative;z-index:2}
 .tile.cov .play,.tile.cov .flag{z-index:2}
 .tile.cov .play{background:rgba(8,20,43,.6)}
@@ -477,13 +477,14 @@ button.tile{font:inherit;cursor:pointer}
 .tile.plus{align-items:center;justify-content:center;background:var(--chip);border:1px solid var(--gold);color:var(--chipfg);font-size:40px;font-weight:400;line-height:1;font-family:var(--font-ui)}
 .tile.plus::before{display:none}
 .tile.plus:hover{background:var(--chip-h)}
-#recent{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-#recent .tile .name{font-size:14px}
-@media (min-width:620px){#recent{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#recent{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#recent .tile{padding:8px}
+#recent .tile .name{font-size:12.5px}
+#recent .tile.plus{font-size:34px}
 @media (min-width:1000px){#recent{grid-template-columns:repeat(6,minmax(0,1fr))}}
-.tg{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);padding:8px 12px;border-radius:4px;background:transparent;font:inherit;font-size:14px;color:var(--silver);cursor:pointer}
+.tg{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--gold);padding:0;border-radius:50%!important;border-radius:4px;background:transparent;font:inherit;font-size:14px;color:var(--silver);cursor:pointer}
 .tg:hover{border-color:var(--gold)}
-.tg svg{width:16px;height:16px;color:var(--gold-soft)}
+.tg svg{width:18px;height:18px;color:var(--gold-soft)}
 /* Capa com zoom suave ao passar o dedo ou o mouse */
 .tile.cov .cover{transition:transform .35s ease}
 .tile.cov:hover .cover,.tile.cov:active .cover{transform:scale(calc(var(--z,1) * 1.07))}
@@ -493,6 +494,9 @@ button.tile{font:inherit;cursor:pointer}
 .lt{display:grid;place-items:center;border-radius:5px;border:1px solid var(--gold);background:linear-gradient(160deg,#102f66,#0b1b3a 80%);color:#e7c872;font-family:var(--font-label);font-weight:600;text-decoration:none;font-size:calc(var(--s,64px) * .5);min-width:0}
 .lt:hover{box-shadow:0 0 0 1px var(--gold)}
 .lt.tema{background:var(--btn);border-color:var(--btn);color:var(--btn-ink);font-family:var(--font-ui);font-weight:800;font-size:calc(var(--s,64px) * .3);text-align:center;line-height:1.1;grid-column:-3 / -1;grid-row:var(--r,7)}
+body.letras main{padding-bottom:14px}
+@media (min-aspect-ratio:1/1){body.letras .top,body.letras main h1,body.letras main .rule{display:none}body.letras main{padding-top:10px}}
+body.letras footer.foot{margin-top:6px}
 /* Carregando (esqueleto) e sem conexão */
 .skel{padding-top:8px}
 .sk{display:block;border-radius:4px;background:linear-gradient(90deg,var(--chip) 0%,var(--chip-h) 50%,var(--chip) 100%);background-size:200% 100%;animation:shim 1.3s linear infinite}
@@ -544,7 +548,7 @@ button.tile{font:inherit;cursor:pointer}
   <a href="#contato">Contato</a>
   <a class="btn small" href="https://www.youtube.com/@catlibras?sub_confirmation=1" target="_blank" rel="noopener">Inscreva-se no canal</a>
   <a href="#" id="instl" hidden>Instalar app</a>
-  <button class="tg" id="tgl" type="button"><span id="tgi" aria-hidden="true"></span><span id="tgt">Tema noturno</span></button>
+  <button class="tg" id="tgl" type="button" aria-label="Tema noturno" title="Tema noturno"><span id="tgi" aria-hidden="true"></span></button>
 </div></footer>
 
 <div id="vo" class="overlay" hidden role="dialog" aria-modal="true" aria-label="Vídeo">

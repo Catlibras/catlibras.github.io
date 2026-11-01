@@ -594,6 +594,7 @@ function render(){
   closeSearch();
   document.body.classList.toggle('watch',h.indexOf('video-')===0);
   document.body.classList.toggle('home',home);
+  document.body.classList.toggle('letras',h==='catalogo');
   document.body.classList.toggle('solopage',h.indexOf('sinal-')===0);
   document.querySelectorAll('nav.menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   closeVideo();initSpot();maybeInstBar();
@@ -731,7 +732,7 @@ function curTheme(){return document.documentElement.getAttribute('data-theme')==
 function paintTheme(){
   var d=curTheme()==='dark',m=document.querySelector('meta[name="theme-color"]');
   if(m) m.setAttribute('content',d?'#08142b':'#f0e4c8');
-  var i=$('#tgi'),t=$('#tgt');if(i) i.innerHTML=d?IC.sol:IC.lua;if(t) t.textContent=d?'Tema claro':'Tema noturno';
+  var i=$('#tgi'),b=$('#tgl'),tx=d?'Tema claro':'Tema noturno';if(i) i.innerHTML=d?IC.sol:IC.lua;if(b){b.setAttribute('aria-label',tx);b.setAttribute('title',tx)}
 }
 var tgl=$('#tgl');
 if(tgl) tgl.addEventListener('click',function(){
@@ -751,19 +752,18 @@ function hit(h){
   })();
 }
 
-/* ---------- alfabeto: escolhe as colunas que dão o maior quadrado na tela ---------- */
+/* ---------- alfabeto: calculado ao abrir; só refaz se o celular girar ---------- */
+var letrasOri=null;
 function fitLetters(){
   var a=$('#larea'),l=$('#lgrid');if(!a||!l) return;
-  var g=8,W=a.clientWidth,top=a.getBoundingClientRect().top,H=window.innerHeight-top-16,best=0,bc=4,br=7,c,r,s;
-  for(c=3;c<=13;c++){r=Math.ceil(28/c);s=Math.min((W-(c-1)*g)/c,(H-(r-1)*g)/r);if(s>best){best=s;bc=c;br=r}}
-  if(best<44){ /* tela muito baixa: quadrados de tamanho mínimo e a página rola */
-    bc=Math.max(3,Math.min(13,Math.floor((W+g)/(56+g))));br=Math.ceil(28/bc);best=Math.min(72,(W-(bc-1)*g)/bc);
-  }
-  best=Math.min(best,120);
-  l.style.setProperty('--c',bc);l.style.setProperty('--r',br);l.style.setProperty('--s',Math.floor(best)+'px');
+  var g=8,W=a.clientWidth,port=window.innerHeight>=window.innerWidth,r=port?5:3,c=Math.ceil(28/r);
+  var s=(W-(c-1)*g)/c;
+  s=Math.max(36,Math.min(s,120));
+  letrasOri=port?'v':'h';
+  l.style.setProperty('--c',c);l.style.setProperty('--r',r);l.style.setProperty('--s',Math.floor(s)+'px');
 }
-window.addEventListener('resize',fitLetters);window.addEventListener('orientationchange',function(){setTimeout(fitLetters,200)});
-if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fitLetters);
+function refitLetters(){if(!$('#lgrid')) return;var p=window.innerHeight>=window.innerWidth?'v':'h';if(p!==letrasOri) fitLetters()}
+window.addEventListener('resize',refitLetters);window.addEventListener('orientationchange',function(){setTimeout(refitLetters,250)});
 
 /* ---------- deslizar para o lado na página do sinal: anterior / próximo ---------- */
 (function(){
