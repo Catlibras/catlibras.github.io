@@ -391,7 +391,7 @@ function spotHtml(){
   var dest=D.acess.map(function(a,i){return {a:a,i:i}}).filter(function(x){return x.a.destaque}).slice(0,3);
   if(!dest.length) dest=D.acess.slice(0,3).map(function(a,i){return {a:a,i:i}});
   if(!dest.length) return '';
-  var slides=dest.map(function(x,k){return '<a class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:linear-gradient(to top,rgba(6,14,34,.9),rgba(6,14,34,.1)),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
+  var slides=dest.map(function(x,k){return '<a class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:var(--spotgrad),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
   var dots=dest.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
   return '<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
 }
@@ -561,7 +561,7 @@ function render(){
   pageStart=Date.now();
   if((mt=h.match(/^tema-(.+)$/))&&D.temas[mt[1]]){
     lastTheme=mt[1];var k=mt[1];cr.push(['Temas','#temas'],[D.temas[k].nome]);var list=sorted(D.sinais.filter(function(s){return s.temas.indexOf(k)>-1}));
-    html='<p class="eyebrow">Tema</p><h1>'+esc(D.temas[k].nome)+'</h1>'+(D.temas[k].desc?'<p class="lead">'+esc(D.temas[k].desc)+'. Em ordem alfabética.</p>':'')+'<hr class="rule" style="margin-top:20px"><div class="grid compact">'+list.map(function(s){return signTile(s,false)}).join('')+'</div>';
+    html='<p class="eyebrow">Tema</p><h1>'+esc(D.temas[k].nome)+'</h1>'+(D.temas[k].desc?'<p class="lead">'+esc(D.temas[k].desc)+'</p>':'')+'<hr class="rule" style="margin-top:20px"><div class="grid compact">'+list.map(function(s){return signTile(s,false)}).join('')+'</div>';
   } else if((mt=h.match(/^letra-([a-z])$/))){
     lastTheme=null;var c=mt[1],C=c.toUpperCase();cr.push(['Catálogo','#catalogo'],['Letra '+C]);
     var ll=sorted(D.sinais.filter(function(s){return [s.nome].concat(s.outros).some(function(n){return chave(n).charAt(0)===c})}));

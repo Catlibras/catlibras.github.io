@@ -58,6 +58,7 @@
   --btn:#8f6614;--btn-ink:#fff6dc;--chip:#e4d3a8;--chip-h:#dcc995;--chipfg:#7a560f;
   --box:rgba(255,255,255,.5);--soft:rgba(255,255,255,.55);--ring:rgba(143,102,20,.65);
   --ic1:#f6ecd0;--ic2:#e2d0a3;--icfg:#7a560f;--trk:rgba(22,41,79,.16);
+  --spotgrad:linear-gradient(to top,rgba(88,60,10,.94),rgba(112,80,18,.12));
   --font-ui:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
   --font-label:'Cinzel','Trajan Pro',Georgia,serif;
@@ -72,6 +73,7 @@
   --btn:#d4a52a;--btn-ink:#1a1405;--chip:#0f2a58;--chip-h:#0f3a7a;--chipfg:#e7c872;
   --box:rgba(13,32,72,.55);--soft:rgba(255,255,255,.07);--ring:rgba(212,165,42,.6);
   --ic1:#102f66;--ic2:#0b1b3a;--icfg:#e7c872;--trk:rgba(255,255,255,.12);
+  --spotgrad:linear-gradient(to top,rgba(6,14,34,.9),rgba(6,14,34,.1));
   color-scheme:dark;
 }
 /* Cartões, vídeos, destaque e janela de vídeo mantêm fundo azul-escuro nos dois temas */
@@ -480,11 +482,12 @@ button.tile{font:inherit;cursor:pointer}
 #recent{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 #recent .tile{padding:8px}
 #recent .tile .name{font-size:12.5px}
-#recent .tile.plus{font-size:34px}
+#recent .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;font-size:30px}
 @media (min-width:1000px){#recent{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .tg{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--gold);padding:0;border-radius:50%!important;border-radius:4px;background:transparent;font:inherit;font-size:14px;color:var(--silver);cursor:pointer}
 .tg:hover{border-color:var(--gold)}
-.tg svg{width:18px;height:18px;color:var(--gold-soft)}
+#tgi{display:grid;place-items:center;width:100%;height:100%}
+.tg svg{display:block;width:18px;height:18px;color:var(--gold-soft)}
 /* Capa com zoom suave ao passar o dedo ou o mouse */
 .tile.cov .cover{transition:transform .35s ease}
 .tile.cov:hover .cover,.tile.cov:active .cover{transform:scale(calc(var(--z,1) * 1.07))}
