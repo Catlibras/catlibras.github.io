@@ -6,6 +6,6 @@
 */
 window.CATLIBRAS = {
   SHEET_ID: '1PNRMigPs49SBlOlPnTS60S4iVuDrqxTyf4BdIpxVRZ8',
-  COMENTARIOS_URL: '',
+  COMENTARIOS_URL: 'https://script.google.com/macros/s/AKfycbxAm5QcXPveoS165FUHsm5R4GIskA95_iSYfqbkVMBp42w9_d8fnPhR33MwdDutHlpv5w/exec',
   CANAL_URL: 'https://www.youtube.com/@catlibras?sub_confirmation=1'
 };
