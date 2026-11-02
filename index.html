@@ -269,7 +269,7 @@ body.watch main{max-width:none;padding-block:12px 48px}
 .grid.compact.roomy{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))}
 
 /* Destaques girando */
-.spot{position:relative;border:1px solid var(--line);border-radius:4px;overflow:hidden;width:100%;max-width:100%;height:clamp(200px,30vw,340px);background:var(--navy)}
+.spot{position:relative;border:1px solid var(--line);border-radius:4px;overflow:hidden;width:100%;max-width:100%;height:clamp(134px,20vw,227px);background:var(--navy)}
 .spot .slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:22px 22px 26px;text-decoration:none;opacity:0;visibility:hidden;transition:opacity .7s,visibility .7s;background:linear-gradient(160deg,#143a80,#0b1b3a 75%)}
 .spot .slide:nth-child(2){background:linear-gradient(200deg,#0f2a58,#08142b 80%)}
 .spot .slide:nth-child(3){background:linear-gradient(120deg,#1a3f7a,#0a1f44 70%)}
@@ -328,7 +328,8 @@ footer.foot{margin-top:24px}
 
 /* Página Sobre */
 .about p{font-family:var(--font-serif);font-size:18px;line-height:1.65;color:var(--silver);max-width:64ch;margin:0 0 14px}
-.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:22px 14px}
+.team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px 10px}
+@media (min-aspect-ratio:1/1){.team{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .member{text-align:center;min-width:0}
 .pw{display:block;position:relative;width:104px;height:104px;margin:0 auto 10px;color:inherit}
 .pw .photo{margin:0}
@@ -445,7 +446,7 @@ a.pw:hover .photo{border-color:var(--gold)}
 :root[data-theme="dark"] .brand .logo-l{display:none}
 .top .wrap.hrow{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;padding-block:8px;position:relative}
 .top .brand{flex:1 1 auto;min-width:0;display:block;text-align:left}
-.top .brand img{height:40px;width:auto;max-width:100%;object-fit:contain;object-position:left center}
+.top .brand img{height:48px;width:auto;max-width:100%;object-fit:contain;object-position:left center}
 .rb{display:flex;gap:8px;flex:none;margin-left:auto}
 .ib{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--gold);display:grid;place-items:center;background:transparent;color:var(--gold-soft);cursor:pointer;padding:0;font:inherit}
 .ib svg{width:18px;height:18px}
@@ -453,9 +454,13 @@ a.pw:hover .photo{border-color:var(--gold)}
 .top .search.sfield{display:none;position:static;flex:1 1 auto;min-width:0;max-width:none;order:0;width:auto}
 .top.sopen .search.sfield{display:block}
 .top.sopen .brand{display:none}
+.top.sopen #dado{display:none}
 .sbox{position:relative}
 .top .navrow{padding-block:0 8px;justify-content:center}
-body.home main{padding-block:14px 72px}
+body.home main{padding-block:14px 0}
+body.home footer.foot{margin-top:0}
+.varsec{margin-top:18px}
+.vhint{margin:0 0 10px;max-width:640px}
 .hero{padding-block:4px 0}
 nav.menu{display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:center;margin:0}
 .results a{display:flex;align-items:center;gap:10px}
@@ -485,7 +490,7 @@ button.tile{font:inherit;cursor:pointer}
 #recent .tile{padding:8px}
 #recent .tile .name{font-size:12.5px}
 #recent .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;display:grid;place-items:center}
-@media (min-width:1000px){#recent{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (min-width:1000px) and (max-aspect-ratio:1/1){#recent{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .tg{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--gold);padding:0;border-radius:50%!important;border-radius:4px;background:transparent;font:inherit;font-size:14px;color:var(--silver);cursor:pointer}
 .tg:hover{border-color:var(--gold)}
 #tgi{display:grid;place-items:center;width:100%;height:100%}
@@ -539,6 +544,7 @@ body.letras footer.foot{margin-top:6px}
 @media (min-aspect-ratio:1/1){.top .menu{order:0;flex:1 1 auto}.top .brand{flex:0 0 auto}.top.sopen .menu{display:none}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .tile.plus svg,.morebtn svg{width:26px;height:26px;display:block;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+@media (min-aspect-ratio:1/1){#recent{grid-template-columns:repeat(6,minmax(0,114px));justify-content:start}}
 </style>
 </head>
 <body>

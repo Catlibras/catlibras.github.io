@@ -163,7 +163,7 @@ function videoTile(href,name,c,seed,attr){
   return '<a class="tile cov" href="'+href+'"'+(attr||'')+'>'+cover(c,seed)+'<span class="play">'+PLAY+'</span><span class="name">'+esc(name)+'</span></a>';
 }
 var WAICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
-function waBtn(text,label){return '<a class="btn small wa" href="https://wa.me/?text='+encodeURIComponent(text)+'" target="_blank" rel="noopener" aria-label="'+(label||'Compartilhar no WhatsApp')+'" title="'+(label||'Compartilhar no WhatsApp')+'">'+WAICON+'</a>'}
+function waBtn(text,label){return '<a class="btn small wa" data-share="'+esc(text)+'" href="https://wa.me/?text='+encodeURIComponent(text)+'" target="_blank" rel="noopener" aria-label="'+(label||'Compartilhar')+'" title="'+(label||'Compartilhar')+'">'+WAICON+'</a>'}
 function vctl(extra){
   return '<div class="vctl" role="group" aria-label="Controles do vídeo">'+
     '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg></a>'+
@@ -253,7 +253,6 @@ function dualView(back,it,title,prev,next,canal){
     '</div></div>'+
     '<div class="player-bar" id="pbar" role="group" aria-label="Navegação">'+
     '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início">'+home+'</a>'+
-    '<a class="btn small ghost" href="'+back+'">Voltar</a>'+
     (prev?'<a class="btn small ghost" href="'+prev+'" rel="prev"><span class="ar">《</span> Anterior</a>':'')+
     (next?'<a class="btn small ghost" href="'+next+'" rel="next">Próximo <span class="ar">》</span></a>':'')+
     (it.terp?'<button type="button" class="btn small ghost" id="swp" aria-pressed="'+(sw?'true':'false')+'">'+(sw?'Original maior':'Intérprete maior')+'</button>':'')+
@@ -322,6 +321,7 @@ function commentsBlock(key,withVideo){
     '<div class="cform-hp" aria-hidden="true"><label>Não preencha<input type="text" id="chp" tabindex="-1" autocomplete="off"></label></div>'+
     '<div class="row"><button class="btn small" type="submit">Publicar comentário</button>'+
     (withVideo?'<label class="btn small ghost filebtn">Enviar vídeo<input type="file" id="cv" accept="video/*"></label>':'')+'</div>'+
+    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz este sinal em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
     '<ul class="clist" id="clist"></ul></section></section>';
 }
@@ -354,9 +354,18 @@ function initComments(key){
     post({nome:n,texto:t}).then(function(){addComment({nome:n,texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado.'}).catch(function(){st.textContent='Não foi possível enviar agora.'});
   });
   var fv=$('#cv');
+  function durOk(file,cb){
+    var v=document.createElement('video'),u=URL.createObjectURL(file),done=false;
+    function fin(ok){if(done)return;done=true;URL.revokeObjectURL(u);cb(ok)}
+    v.preload='metadata';v.onloadedmetadata=function(){fin(!(v.duration>15.5))};v.onerror=function(){fin(true)};
+    setTimeout(function(){fin(true)},4000);v.src=u;
+  }
+  if(fv) fv.addEventListener('click',function(){var h=$('#cvh');if(h)h.hidden=false});
   if(fv) fv.addEventListener('change',function(){
     var file=fv.files&&fv.files[0]; if(!file) return;
-    if(file.size>25*1024*1024){st.textContent='O vídeo é grande demais (máximo 25 MB).';fv.value='';return}
+    if(file.size>35*1024*1024){st.textContent='O vídeo é grande demais (máximo 35 MB).';fv.value='';return}
+    durOk(file,function(ok){
+    if(!ok){st.textContent='O vídeo deve ter até 15 segundos.';fv.value='';return}
     if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';fv.value='';return}
     st.textContent='Enviando o vídeo...';
     var rd=new FileReader();
@@ -367,6 +376,7 @@ function initComments(key){
         .catch(function(){st.textContent='Não foi possível enviar o vídeo agora.'});
     };
     rd.readAsDataURL(file);
+    });
   });
 }
 
@@ -531,7 +541,7 @@ function sinalView(s){
   return '<div class="sp"><h1 class="sr">'+esc(label(s))+'</h1>'+
     '<div class="solo"><div class="frame live" id="sf">'+poster(s.yt,'Reproduzir '+label(s))+'</div>'+
     vctl(waBtn('https://youtu.be/'+s.yt))+pn+'</div>'+
-    (reg?'<section class="section"><div class="section-head"><h2>Variações</h2></div><hr class="rule"><div class="grid small">'+reg+'</div></section>':'')+
+    (reg?'<section class="section varsec"><div class="section-head"><h2>Variações</h2></div><hr class="rule"><div class="grid small">'+reg+'</div></section>':'')+
     commentsBlock('sinal-'+s.id,true)+'</div>';
 }
 function eucView(e){
@@ -631,15 +641,16 @@ document.addEventListener('click',function(e){
   var sp=e.target.closest&&e.target.closest('[data-speed]');
   if(sp){sp.parentNode.querySelectorAll('[data-speed]').forEach(function(b){b.setAttribute('aria-pressed',b===sp?'true':'false')});applySpeed(parseFloat(sp.getAttribute('data-speed')))}
   if(e.target.closest&&e.target.closest('#more')){
-    var hid=document.querySelectorAll('#recent > a[hidden]'),n=Math.min(5,hid.length),i,pl=$('#more');
+    var hid=document.querySelectorAll('#recent > a[hidden]'),n=Math.min(6,hid.length),i,pl=$('#more');
     for(i=0;i<n;i++) hid[i].hidden=false;
     var rest=document.querySelectorAll('#recent > a[hidden]');
     if(pl){ if(rest.length) pl.parentNode.insertBefore(pl,rest[0]); else pl.remove(); }
   }
   if(e.target.closest&&e.target.closest('#moreth')){
-    document.querySelectorAll('#temasgrid > [hidden]').forEach(function(t){t.hidden=false});
-    var mt=$('#moreth');if(mt) mt.parentNode.remove();
+    location.hash='#temas';
   }
+  var sh=e.target.closest&&e.target.closest('[data-share]');
+  if(sh&&navigator.share){e.preventDefault();navigator.share({text:sh.getAttribute('data-share')}).catch(function(){})}
   var rp=e.target.closest&&e.target.closest('[data-repeat]');
   if(rp){repeat=rp.getAttribute('aria-pressed')!=='true';rp.setAttribute('aria-pressed',repeat?'true':'false')}
   var v=e.target.closest&&e.target.closest('[data-video]');
@@ -672,7 +683,7 @@ function setupSearch(q,res){
   q.addEventListener('input',function(){
     var v=norm(q.value);
     if(!v){closeAll();return}
-    var hit=sorted(D.sinais.filter(function(s){return norm(label(s)).indexOf(v)>-1||norm(s.titulo).indexOf(v)>-1||norm(s.sinonimos).indexOf(v)>-1})).sort(function(a,b){return (a.soon?1:0)-(b.soon?1:0)}).slice(0,8);
+    var hit=sorted(D.sinais.filter(function(s){return norm(label(s)).indexOf(v)>-1||norm(s.titulo).indexOf(v)>-1||norm(s.sinonimos).indexOf(v)>-1||s.temas.some(function(k){return norm(D.temas[k].nome).indexOf(v)>-1})})).sort(function(a,b){return (a.soon?1:0)-(b.soon?1:0)}).slice(0,8);
     res.innerHTML=hit.length?hit.map(function(s){var sm='<small>'+(s.soon?'Em breve':esc(s.temas.map(function(k){return D.temas[k].nome}).join(', ')))+'</small>';return s.soon?'<span class="soonres">'+esc(label(s))+sm+'</span>':'<a href="#sinal-'+s.id+'"><img class="rth" src="'+thumb(s.yt)+'" alt="" loading="lazy" onerror="this.remove()"><span>'+esc(label(s))+sm+'</span></a>'}).join(''):'<p>Nenhum sinal encontrado.</p>';
     res.hidden=false;
   });
