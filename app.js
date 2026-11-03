@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-02a";
+var BUILD="2026-11-03a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -313,6 +313,10 @@ function initDual(it,nextHref){
 
 /* ---------- comentários ---------- */
 var pageStart=0;
+var UFS=[['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']];
+var PEND_DIAS=5;
+function pendGet(){try{return JSON.parse(localStorage.getItem('cl_pend')||'[]').filter(function(x){return Date.now()-x.t<PEND_DIAS*864e5})}catch(e){return []}}
+function pendSet(a){try{localStorage.setItem('cl_pend',JSON.stringify(a))}catch(e){}}
 function commentsBlock(key,withVideo){
   if(!CFG.COMENTARIOS_URL) return '';
   return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Comentários</h2>'+
@@ -322,13 +326,15 @@ function commentsBlock(key,withVideo){
     '<div class="cform-hp" aria-hidden="true"><label>Não preencha<input type="text" id="chp" tabindex="-1" autocomplete="off"></label></div>'+
     '<div class="row"><button class="btn small" type="submit">Publicar comentário</button>'+
     (withVideo?'<label class="btn small ghost filebtn">Enviar vídeo<input type="file" id="cv" accept="video/*"></label>':'')+'</div>'+
+    (withVideo?'<div id="cew" hidden><label for="ce">Seu Estado (obrigatório para enviar vídeo)</label><select id="ce"><option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option></select></div>':'')+
     (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz este sinal em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
+    '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>'+
     '<ul class="clist" id="clist"></ul></section></section>';
 }
 function addComment(c,top){
   var li=document.createElement('li'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
-  b.textContent=c.nome||'Visitante';sp.textContent=c.data||'';p.textContent=c.texto||'';
+  b.textContent=(c.nome||'Visitante')+(c.estado?' · '+c.estado:'');sp.textContent=c.data||'';p.textContent=c.texto||'';
   li.appendChild(b);li.appendChild(sp);if(c.texto)li.appendChild(p);
   if(c.video){var m=String(c.video).match(/[-\w]{20,}/);if(m){var fr=document.createElement('iframe');fr.src='https://drive.google.com/file/d/'+m[0]+'/preview';fr.setAttribute('allow','autoplay');fr.style.cssText='width:100%;aspect-ratio:16/9;border:0;border-radius:4px;margin-top:8px';fr.title='Vídeo enviado';li.appendChild(fr)}}
   var l=$('#clist');if(!l)return;
@@ -336,10 +342,13 @@ function addComment(c,top){
 }
 function initComments(key){
   var form=$('#cform'); if(!form) return;
-  fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){(j.comentarios||[]).forEach(function(c){addComment(c,false)})}).catch(function(){});
+  fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];cs.forEach(function(c){addComment(c,false)});
+    var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
   var st=$('#cs');
+  function showPend(){var el=$('#pend');if(el)el.hidden=!pendGet().some(function(x){return x.k===key})}
+  showPend();
   function post(body){
-    body.pagina=key;body.site=$('#chp').value;body.tempo=Date.now()-pageStart;
+    body.pagina=key;var ce=$('#ce');if(ce&&ce.value)body.estado=ce.value;body.site=$('#chp').value;body.tempo=Date.now()-pageStart;
     return fetch(CFG.COMENTARIOS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
   }
   function limited(){
@@ -352,7 +361,7 @@ function initComments(key){
     if(!t){st.textContent='Escreva o comentário antes de publicar.';return}
     if($('#chp').value||Date.now()-pageStart<3000){st.textContent='Tente de novo em instantes.';return}
     if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';return}
-    post({nome:n,texto:t}).then(function(){addComment({nome:n,texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado.'}).catch(function(){st.textContent='Não foi possível enviar agora.'});
+    post({nome:n,texto:t}).then(function(){addComment({nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado.'}).catch(function(){st.textContent='Não foi possível enviar agora.'});
   });
   var fv=$('#cv');
   function durOk(file,cb){
@@ -361,7 +370,10 @@ function initComments(key){
     v.preload='metadata';v.onloadedmetadata=function(){fin(!(v.duration>15.5))};v.onerror=function(){fin(true)};
     setTimeout(function(){fin(true)},4000);v.src=u;
   }
-  if(fv) fv.addEventListener('click',function(){var h=$('#cvh');if(h)h.hidden=false});
+  if(fv) fv.addEventListener('click',function(e){
+    var h=$('#cvh');if(h)h.hidden=false;var w=$('#cew');if(w)w.hidden=false;
+    if(!$('#cn').value.trim()||!($('#ce')||{}).value){e.preventDefault();st.textContent='Para enviar um vídeo, preencha seu nome e escolha o Estado. Depois toque em Enviar vídeo.';(!$('#cn').value.trim()?$('#cn'):$('#ce')).focus()}
+  });
   if(fv) fv.addEventListener('change',function(){
     var file=fv.files&&fv.files[0]; if(!file) return;
     if(file.size>35*1024*1024){st.textContent='O vídeo é grande demais (máximo 35 MB).';fv.value='';return}
@@ -371,9 +383,9 @@ function initComments(key){
     st.textContent='Enviando o vídeo...';
     var rd=new FileReader();
     rd.onload=function(){
-      var n=$('#cn').value.trim()||'Visitante';
+      var n=$('#cn').value.trim();
       post({nome:n,texto:$('#ct').value.trim(),arquivo:{nome:file.name,tipo:file.type,dados:String(rd.result).split(',')[1]}})
-        .then(function(){st.textContent='Vídeo recebido. Aparece no site depois da aprovação da equipe.';fv.value=''})
+        .then(function(){st.textContent='Recebemos seu vídeo. Obrigado por contribuir! Ele aparecerá nesta página depois da nossa análise.';fv.value='';var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend()})
         .catch(function(){st.textContent='Não foi possível enviar o vídeo agora.'});
     };
     rd.readAsDataURL(file);
