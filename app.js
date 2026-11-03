@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-03a";
+var BUILD="2026-11-03b";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -322,11 +322,11 @@ function commentsBlock(key,withVideo){
   return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Comentários</h2>'+
     '<form class="form" id="cform" novalidate>'+
     '<div><label for="cn">Seu nome</label><input type="text" id="cn" autocomplete="name" maxlength="60"></div>'+
+    '<div><label for="ce">Seu Estado</label><select id="ce"><option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option></select></div>'+
     '<div><label for="ct">Seu comentário</label><textarea id="ct" maxlength="1500"></textarea></div>'+
     '<div class="cform-hp" aria-hidden="true"><label>Não preencha<input type="text" id="chp" tabindex="-1" autocomplete="off"></label></div>'+
     '<div class="row"><button class="btn small" type="submit">Publicar comentário</button>'+
     (withVideo?'<label class="btn small ghost filebtn">Enviar vídeo<input type="file" id="cv" accept="video/*"></label>':'')+'</div>'+
-    (withVideo?'<div id="cew" hidden><label for="ce">Seu Estado (obrigatório para enviar vídeo)</label><select id="ce"><option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option></select></div>':'')+
     (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz este sinal em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
     '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>'+
@@ -334,7 +334,7 @@ function commentsBlock(key,withVideo){
 }
 function addComment(c,top){
   var li=document.createElement('li'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
-  b.textContent=(c.nome||'Visitante')+(c.estado?' · '+c.estado:'');sp.textContent=c.data||'';p.textContent=c.texto||'';
+  b.textContent=(c.nome||'Visitante')+(c.estado?' - '+c.estado:'');sp.textContent=c.data||'';p.textContent=c.texto||'';
   li.appendChild(b);li.appendChild(sp);if(c.texto)li.appendChild(p);
   if(c.video){var m=String(c.video).match(/[-\w]{20,}/);if(m){var fr=document.createElement('iframe');fr.src='https://drive.google.com/file/d/'+m[0]+'/preview';fr.setAttribute('allow','autoplay');fr.style.cssText='width:100%;aspect-ratio:16/9;border:0;border-radius:4px;margin-top:8px';fr.title='Vídeo enviado';li.appendChild(fr)}}
   var l=$('#clist');if(!l)return;
@@ -357,7 +357,9 @@ function initComments(key){
   }
   form.addEventListener('submit',function(e){
     e.preventDefault();
-    var t=$('#ct').value.trim(),n=$('#cn').value.trim()||'Visitante';
+    var t=$('#ct').value.trim(),n=$('#cn').value.trim();
+    if(!n){st.textContent='Preencha seu nome.';$('#cn').focus();return}
+    if(!$('#ce').value){st.textContent='Escolha o seu Estado.';$('#ce').focus();return}
     if(!t){st.textContent='Escreva o comentário antes de publicar.';return}
     if($('#chp').value||Date.now()-pageStart<3000){st.textContent='Tente de novo em instantes.';return}
     if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';return}
@@ -371,7 +373,7 @@ function initComments(key){
     setTimeout(function(){fin(true)},4000);v.src=u;
   }
   if(fv) fv.addEventListener('click',function(e){
-    var h=$('#cvh');if(h)h.hidden=false;var w=$('#cew');if(w)w.hidden=false;
+    var h=$('#cvh');if(h)h.hidden=false;
     if(!$('#cn').value.trim()||!($('#ce')||{}).value){e.preventDefault();st.textContent='Para enviar um vídeo, preencha seu nome e escolha o Estado. Depois toque em Enviar vídeo.';(!$('#cn').value.trim()?$('#cn'):$('#ce')).focus()}
   });
   if(fv) fv.addEventListener('change',function(){
@@ -445,7 +447,7 @@ function memberHtml(r){
   return '<div class="member">'+pw+'<div class="who">'+esc(nm)+'</div>'+(role?'<span class="role '+(/^surd/.test(norm(role))?'surdo':'ouvinte')+'">'+esc(role)+'</span>':'')+'</div>';
 }
 /* Temas na tela inicial: 5 por vez, em rodízio a cada abertura do app */
-var TEMAS_POR_VEZ=3,TEMA_INI=0;
+var TEMAS_POR_VEZ=4,TEMA_INI=0;
 try{TEMA_INI=parseInt(localStorage.getItem('cl_tema_ini'),10)||0;localStorage.setItem('cl_tema_ini',String(TEMA_INI+TEMAS_POR_VEZ))}catch(e){}
 function rodizio(list){
   var n=list.length;if(n<=TEMAS_POR_VEZ) return list;
