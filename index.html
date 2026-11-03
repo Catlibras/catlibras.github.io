@@ -119,7 +119,7 @@ h2{font-weight:700;font-size:clamp(21px,3vw,28px);line-height:1.15;margin:0 0 6p
 h3{font-weight:700;font-size:17px;margin:0 0 6px}
 .lead{font-family:var(--font-serif);font-size:clamp(17px,2.2vw,20px);line-height:1.6;color:var(--silver);max-width:62ch;margin:0}
 .rule{height:1px;background:linear-gradient(90deg,var(--gold),rgba(212,165,42,0) 70%);border:0;margin:0 0 22px;width:100%}
-.section{margin-top:56px}
+.section{margin-top:28px}
 .section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;margin-bottom:6px}
 .section-head p{margin:0;color:var(--muted);font-size:14px}
 .crumb{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:14px;color:var(--muted);margin-bottom:22px}
@@ -545,6 +545,23 @@ body.letras footer.foot{margin-top:6px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .tile.plus svg,.morebtn svg{width:26px;height:26px;display:block;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
 @media (min-aspect-ratio:1/1){#recent{grid-template-columns:repeat(6,minmax(0,114px));justify-content:start}}
+/* Abertura do app: a logo grande no centro desliza para o cabeçalho */
+.intro{position:fixed;inset:0;z-index:200;pointer-events:none}
+.intro-bg{position:absolute;inset:0;background:var(--bg)}
+.intro img{position:fixed;display:block;max-width:none}
+.introing .top .brand{visibility:hidden}
+.instbar.upd{top:max(12px,env(safe-area-inset-top,0px));bottom:auto}
+/* Resposta ao toque */
+.tile,.btn,.ib,.lt,.morebtn,.tg,.ci i,.rec .rimg{transition:transform .12s ease,border-color .15s,box-shadow .2s}
+.tile:active,.btn:active,.ib:active,.lt:active,.morebtn:active,.tg:active,.ci:active i,.rec:active .rimg{transform:scale(.96)}
+@media (prefers-reduced-motion:reduce){.tile:active,.btn:active,.ib:active,.lt:active,.morebtn:active,.tg:active,.ci:active i,.rec:active .rimg{transform:none}}
+/* Sinal: ao girar o celular, o vídeo ocupa a tela toda */
+@media (min-aspect-ratio:1/1) and (max-height:600px){
+  body.solopage{overflow:hidden}
+  body.solopage #app>*{animation:none}
+  body.solopage #sf{position:fixed;left:0;top:0;width:100vw;max-width:none;height:100dvh;aspect-ratio:auto;z-index:40;border-radius:0;border:0}
+  .spot .slide{-webkit-user-drag:none;user-select:none}
+}
 </style>
 </head>
 <body>

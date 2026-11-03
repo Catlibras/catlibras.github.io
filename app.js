@@ -4,6 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
+var BUILD="2026-11-02a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -255,7 +256,7 @@ function dualView(back,it,title,prev,next,canal){
     '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início">'+home+'</a>'+
     (prev?'<a class="btn small ghost" href="'+prev+'" rel="prev"><span class="ar">《</span> Anterior</a>':'')+
     (next?'<a class="btn small ghost" href="'+next+'" rel="next">Próximo <span class="ar">》</span></a>':'')+
-    (it.terp?'<button type="button" class="btn small ghost" id="swp" aria-pressed="'+(sw?'true':'false')+'">'+(sw?'Original maior':'Intérprete maior')+'</button>':'')+
+    (it.terp?'<button type="button" class="btn small ghost" id="swp" aria-pressed="'+(sw?'true':'false')+'" aria-label="'+(sw?'Diminuir o intérprete':'Aumentar o intérprete')+'">'+(sw?'Libras \u2212':'Libras +')+'</button>':'')+
     waBtn((title?title+' ':'')+location.href)+
     '</div>'+cred+'</div>';
 }
@@ -303,7 +304,7 @@ function initDual(it,nextHref){
   var sb=$('#swp');
   if(sb) sb.addEventListener('click',function(){
     var pr=$('.pair'),on=!pr.classList.contains('swap');
-    pr.classList.toggle('swap',on);sb.setAttribute('aria-pressed',on?'true':'false');sb.textContent=on?'Original maior':'Intérprete maior';
+    pr.classList.toggle('swap',on);sb.setAttribute('aria-pressed',on?'true':'false');sb.setAttribute('aria-label',on?'Diminuir o intérprete':'Aumentar o intérprete');sb.textContent=on?'Libras \u2212':'Libras +';
     try{localStorage.setItem('cl_swap',on?'1':'0')}catch(e){}
   });
   fo.addEventListener('click',function(e){if(e.target.closest('.poster'))start()});
@@ -392,7 +393,7 @@ function recentList(){
 }
 function isNew(s){
   if(!s.data) return false;
-  var d=new Date(s.data+'T00:00:00');return !isNaN(d)&&(Date.now()-d.getTime())<14*864e5;
+  var d=new Date(s.data+'T00:00:00');return !isNaN(d)&&(Date.now()-d.getTime())<7*864e5;
 }
 function head(h){return '<h1>'+h+'</h1><hr class="rule">'}
 var DEF_WHATS='https://whatsapp.com/channel/0029VaGE5bbHwXb8n4YcpC3G',DEF_TELEGRAM='https://t.me/+HBcOID9aNCZlMDc5';
@@ -401,7 +402,7 @@ function spotHtml(){
   var dest=D.acess.map(function(a,i){return {a:a,i:i}}).filter(function(x){return x.a.destaque}).slice(0,3);
   if(!dest.length) dest=D.acess.slice(0,3).map(function(a,i){return {a:a,i:i}});
   if(!dest.length) return '';
-  var slides=dest.map(function(x,k){return '<a class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:var(--spotgrad),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
+  var slides=dest.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:var(--spotgrad),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
   var dots=dest.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
   return '<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
 }
@@ -622,6 +623,12 @@ function initSpot(){
   function start(){if(spotTimer||slides.length<2||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))return;spotTimer=setInterval(function(){show(i+1)},4000)}
   function pause(){clearInterval(spotTimer);spotTimer=null}
   dots.forEach(function(d,k){d.addEventListener('click',function(){show(k)})});
+  var x0=null,sw=false;
+  sp.style.touchAction='pan-y';
+  sp.addEventListener('pointerdown',function(e){x0=e.clientX;sw=false});
+  sp.addEventListener('pointerup',function(e){if(x0===null)return;var dx=e.clientX-x0;x0=null;if(Math.abs(dx)>45){sw=true;show(i+(dx<0?1:-1));pause();start()}});
+  sp.addEventListener('pointercancel',function(){x0=null});
+  sp.addEventListener('click',function(e){if(sw){e.preventDefault();sw=false}},true);
   sp.addEventListener('mouseenter',pause);sp.addEventListener('mouseleave',start);sp.addEventListener('focusin',pause);sp.addEventListener('focusout',start);
   start();
 }
@@ -675,7 +682,9 @@ function initHeader(){
   $('#dado').addEventListener('click',function(){
     var pool=D.sinais.filter(function(x){return !x.soon&&('#sinal-'+x.id)!==location.hash});
     if(!pool.length) return;
-    location.hash='#sinal-'+pool[Math.floor(Math.random()*pool.length)].id;
+    var alvo='#sinal-'+pool[Math.floor(Math.random()*pool.length)].id,ic=$('#dado svg');
+    if(ic&&ic.animate&&!reducedMotion()){ic.animate([{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],{duration:450,easing:'ease-in-out'});setTimeout(function(){location.hash=alvo},450)}
+    else location.hash=alvo;
   });
 }
 function setupSearch(q,res){
@@ -792,17 +801,76 @@ window.addEventListener('resize',refitLetters);window.addEventListener('orientat
   },{passive:true});
 })();
 
+/* ---------- animação de abertura (só no app instalado, na tela inicial) ---------- */
+var introEl=null,introT=0;
+function reducedMotion(){return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}
+function startIntro(){
+  if((location.hash||'#inicio')!=='#inicio'||!standalone()||reducedMotion()) return;
+  var d=document.createElement('div'),bg=document.createElement('div'),im=document.createElement('img'),w=Math.min(window.innerWidth*0.72,380);
+  d.className='intro';d.setAttribute('aria-hidden','true');bg.className='intro-bg';
+  im.alt='';im.src=curTheme()==='dark'?'logo.svg':'logo-claro.svg';
+  im.style.cssText='left:'+((window.innerWidth-w)/2)+'px;top:'+(window.innerHeight*0.42-w*0.12)+'px;width:'+w+'px;height:auto';
+  d.appendChild(bg);d.appendChild(im);document.body.appendChild(d);document.documentElement.classList.add('introing');
+  introEl=d;introT=Date.now();
+  setTimeout(endIntro,9000);
+}
+function endIntro(){
+  if(introEl){introEl.remove();introEl=null}
+  document.documentElement.classList.remove('introing');
+}
+function finishIntro(){
+  var d=introEl;if(!d) return;
+  setTimeout(function(){
+    if(introEl!==d) return;
+    var im=d.querySelector('img'),bg=d.querySelector('.intro-bg'),t=null;
+    document.querySelectorAll('.top .brand img').forEach(function(x){var r=x.getBoundingClientRect();if(r.width>0) t=r});
+    if(!t||!im.animate){endIntro();return}
+    var s=im.getBoundingClientRect(),o={duration:700,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'};
+    function box(r){return {left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'}}
+    im.animate([box(s),box(t)],o);
+    bg.animate([{opacity:1},{opacity:1,offset:.2},{opacity:0}],o);
+    setTimeout(endIntro,720);
+  },Math.max(0,500-(Date.now()-introT)));
+}
+
+/* ---------- aviso de versão nova ---------- */
+var updShown=false,lastChk=0;
+function checkUpdate(){
+  if(updShown||document.hidden||(lastChk&&Date.now()-lastChk<600000)) return;
+  lastChk=Date.now();
+  fetch('app.js',{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
+    var m=t.match(/var BUILD="([\w.\-]+)"/);
+    if(m&&m[1]!==BUILD) showUpdate();
+  }).catch(function(){});
+}
+function showUpdate(){
+  if(updShown) return;updShown=true;
+  var b=document.createElement('div');b.className='instbar upd';b.setAttribute('role','status');
+  b.innerHTML='<p>Há uma versão nova do Catlibras.</p><div class="row"><button type="button" class="btn small" id="updgo">Atualizar</button><button type="button" class="btn small ghost" id="updno">Depois</button></div>';
+  document.body.appendChild(b);
+  $('#updno').addEventListener('click',function(){b.remove()});
+  $('#updgo').addEventListener('click',function(){
+    Promise.all([fetch('app.js',{cache:'reload'}),fetch('index.html',{cache:'reload'})]).catch(function(){}).then(function(){location.reload()});
+  });
+}
+
 /* ---------- início ---------- */
 var foot=$('.foot-in a.btn');if(foot&&CFG.CANAL_URL) foot.href=CFG.CANAL_URL;
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){})}
 app.innerHTML='<div class="skel" aria-busy="true" aria-label="Carregando"><span class="sk h"></span><div class="skg"><span class="sk"></span><span class="sk"></span><span class="sk"></span><span class="sk"></span></div></div>';
 document.body.classList.add('home');$('#menu').hidden=true;
+startIntro();
 loadData().then(function(r){
   D.raw=r.raw;buildModel(r.raw);
   initHeader();
   window.addEventListener('hashchange',render);
   render();
+  finishIntro();
+  setTimeout(checkUpdate,4000);
+  document.addEventListener('visibilitychange',checkUpdate);
+  setInterval(checkUpdate,900000);
 }).catch(function(){
+  endIntro();
   $('#menu').hidden=true;
   app.innerHTML='<div class="offline"><img src="'+(curTheme()==='dark'?'logo.svg':'logo-claro.svg')+'" alt="Catlibras"><p>Não foi possível carregar o catálogo agora. Verifique a conexão com a internet e tente de novo.</p><button type="button" class="btn" id="retry">Tentar de novo</button></div>';
   $('#retry').addEventListener('click',function(){location.reload()});
