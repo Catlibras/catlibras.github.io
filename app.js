@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-04c";
+var BUILD="2026-11-04d";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -194,6 +194,8 @@ function barTile(href,name,c,seed){return '<a class="tile theme cov" href="'+hre
 function videoTile(href,name,c,seed,attr,ord,nw){
   return '<a class="tile cov" href="'+href+'"'+(attr||'')+'>'+cover(c,seed)+(ord?'<span class="ord">'+ord+'</span>':'')+(nw?'<span class="newtag'+(ord?' l':'')+'">Novo</span>':'')+'<span class="play">'+PLAY+'</span><span class="name">'+esc(name)+'</span></a>';
 }
+var SHARE_PAGES=['a-biblia','catecismo-da-igreja-catolica','dogma-da-redencao','escatologia','missa-parte-por-parte','sao-jose','teologia-do-corpo'];
+function shareLink(id){return SHARE_PAGES.indexOf(id)>-1?location.origin+'/compartilhar/'+id+'.html':location.href}
 function headShare(h,txt){return '<div class="hs"><h1>'+h+'</h1>'+waBtn(txt,'Compartilhar esta série')+'</div><hr class="rule">'}
 function rowTile(href,name,c,seed,ord,nw){
   return '<a class="srow" href="'+href+'"><span class="tile cov vt">'+cover(c,seed)+(ord?'<span class="ord">'+ord+'</span>':'')+(nw?'<span class="newtag'+(ord?' l':'')+'">Novo</span>':'')+'<span class="play">'+PLAY+'</span></span><span class="stt">'+esc(name)+'</span></a>';
@@ -751,7 +753,7 @@ function render(){
     var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='catequeses';cr.push(['Catequeses','#catequeses'],['Patrística','#patristica'],['Módulo '+pm,'#patristica-'+pm],[v.nome]);var nxh=pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'';after=function(){initDual(v,nxh)};
   } else if((mt=h.match(/^catequeses-(.+)$/))&&D.gBy[mt[1]]&&!D.gBy[mt[1]].leva){
     var gg=D.gBy[mt[1]],gl=D.cat.filter(function(c){return c.g===gg.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i});
-    html=headShare(esc(gg.nome),gg.nome+' – Catlibras '+location.href)+(gg.desc?'<p class="lead">'+esc(gg.desc)+'</p>':'')+'<div class="slist">'+gl.map(function(c,i){return rowTile('#catequese-'+c.id,c.titulo,c.capa,'c'+c.id,i+1,newDate(c.data))}).join('')+'</div>';
+    html=headShare(esc(gg.nome),gg.nome+' – Catlibras '+shareLink(gg.id))+(gg.desc?'<p class="lead">'+esc(gg.desc)+'</p>':'')+'<div class="slist">'+gl.map(function(c,i){return rowTile('#catequese-'+c.id,c.titulo,c.capa,'c'+c.id,i+1,newDate(c.data))}).join('')+'</div>';
     nav='catequeses';cr.push(['Catequeses','#catequeses'],[gg.nome]);
   } else if((mt=h.match(/^catequese-(.+)$/))&&D.catBy[mt[1]]){
     var cc=D.catBy[mt[1]],cg=cc.g?D.gBy[cc.g]:null,cl=cg?D.cat.filter(function(c){return c.g===cg.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i}):[],ci=cl.indexOf(cc);
