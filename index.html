@@ -578,6 +578,38 @@ body.letras footer.foot{margin-top:6px}
   .pair.one{width:min(100%,calc(100dvh * 1.7778));aspect-ratio:16/9}
   .pair.one .frame.orig{position:absolute;left:0;top:0;width:100%;height:100%;aspect-ratio:auto}
 }
+
+/* Carrossel com thumbnails (sem título) */
+.spot.thumb{height:auto;aspect-ratio:16/9;max-width:720px;margin-inline:auto;background:#000}
+.spot.thumb .slide{display:block;padding:0;background:none!important}
+.spot.thumb .slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.spot.thumb .slide .play{left:50%;top:50%;margin:-26px 0 0 -26px;width:52px;height:52px;background:rgba(8,20,43,.55);z-index:2}
+.spot.thumb .slide .play svg{width:20px;height:20px}
+.spot.thumb .dots{background:rgba(8,20,43,.5);padding:5px 8px;border-radius:12px;right:10px;bottom:10px}
+/* Mosaico de catequeses: cartões retangulares do thumbnail, sem título nem gradiente */
+.grid.vid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid.vid .tile{aspect-ratio:16/9;padding:0}
+.grid.vid .tile.cov::before{display:none}
+.grid.vid .tile .play{left:50%;top:50%;margin:-16px 0 0 -16px;width:32px;height:32px;z-index:2}
+.grid.vid .tile .play svg{width:12px;height:12px;margin-left:2px}
+.grid.vid .newtag.l{top:8px}
+#cqgrid .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;display:grid;place-items:center}
+.grid.vid.titled .tile{justify-content:flex-end;padding:8px}
+.grid.vid.titled .tile.cov::before{display:block}
+.grid.vid.titled .tile .play{left:50%;top:42%;margin:-16px 0 0 -16px}
+.hs{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.hs h1{min-width:0}
+.hs .btn.wa{flex:none;margin-top:4px}
+.slist{display:flex;flex-direction:column;gap:14px;max-width:760px}
+.srow{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit}
+.srow .tile{flex:0 0 50%;width:50%;display:block;aspect-ratio:16/9;padding:0}
+.srow .tile.cov::before{display:none}
+.srow .tile .play{left:50%;top:50%;margin:-16px 0 0 -16px;width:32px;height:32px}
+.srow .tile .play svg{width:12px;height:12px;margin-left:2px}
+.srow .stt{flex:1;min-width:0;font-weight:700;font-size:16px;line-height:1.25;overflow-wrap:anywhere}
+.srow:hover .stt{color:var(--gold)}
+/* Logo em véu sobre o vídeo */
+.veil{position:absolute;top:3%;right:2.5%;width:10%;max-width:84px;min-width:28px;height:auto;pointer-events:none;z-index:6;opacity:.88;filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.55))}
 </style>
 </head>
 <body>

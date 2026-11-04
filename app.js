@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-03c";
+var BUILD="2026-11-04a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -113,13 +113,13 @@ function buildModel(raw){
       var k=slug(t); if(!D.temas[k]) D.temas[k]={nome:t,desc:'',capa:{img:'',x:'50%',y:'50%',z:1},extra:true}; return k;
     });
     D.sinais.push({id:id,titulo:titulo,nome:nomePrincipal(titulo),outros:String(f(r,'outros')||'').split(',').map(function(t){return t.trim()}).filter(Boolean),
-      sinonimos:String(f(r,'sinonimos')||''),dia:String(f(r,'dia de celebracao')||''),temas:temas,yt:publicado?yt:'',soon:!publicado,data:publicado?data:'',capa:capaOf(r,publicado?yt:'',CAPA_SINAL),ordem:i});
+      sinonimos:String(f(r,'sinonimos')||''),dest:yes(f(r,'destaque')),dia:String(f(r,'dia de celebracao')||''),temas:temas,yt:publicado?yt:'',soon:!publicado,data:publicado?data:'',capa:capaOf(r,publicado?yt:'',CAPA_SINAL),ordem:i});
   });
   D.patr={};
   raw.patristica.filter(function(r){return norm(f(r,'ativo'))!=='nao'}).forEach(function(r){
     var m=String(f(r,'modulo')).trim(),o=ytid(f(r,'link do original'));
     if(!m||!o) return;
-    (D.patr[m]=D.patr[m]||[]).push({ordem:num(f(r,'ordem'),999),nome:String(f(r,'nome')||('Vídeo')),orig:o,terp:ytid(f(r,'link do interprete')),ini:num(f(r,'inicio'),0),capa:capaOf(r,o)});
+    (D.patr[m]=D.patr[m]||[]).push({ordem:num(f(r,'ordem'),999),nome:String(f(r,'nome')||('Vídeo')),orig:o,terp:ytid(f(r,'link do interprete')),ini:num(f(r,'inicio'),0),dest:yes(f(r,'destaque')),capa:capaOf(r,o)});
   });
   Object.keys(D.patr).forEach(function(m){D.patr[m].sort(function(a,b){return a.ordem-b.ordem})});
   D.euc=raw.eucaristica.filter(function(r){return norm(f(r,'ativo'))!=='nao'&&String(f(r,'numero')).trim()}).map(function(r){
@@ -142,7 +142,7 @@ function buildModel(raw){
     var yt=ytid(f(r,'link')),t=String(f(r,'titulo')).trim();if(!yt||!t) return;
     var id=slug(t)||('c'+i);if(D.catBy[id]) id=id+'-'+(i+1);
     var gid=slug(f(r,'grupo'));
-    var c={id:id,titulo:t,yt:yt,g:D.gBy[gid]?gid:'',ordem:num(f(r,'ordem'),999),dia:String(f(r,'dia de celebracao')||''),data:String(f(r,'data de')||'').slice(0,10),capa:capaOf(r,yt),i:i};
+    var c={id:id,titulo:t,yt:yt,g:D.gBy[gid]?gid:'',ordem:num(f(r,'ordem'),999),dia:String(f(r,'dia de celebracao')||''),dest:yes(f(r,'destaque')),data:String(f(r,'data de')||'').slice(0,10),capa:capaOf(r,yt),i:i};
     D.cat.push(c);D.catBy[id]=c;
   });
   D.grupos.forEach(function(g){
@@ -192,7 +192,11 @@ function barTile(href,name,c,seed){return '<a class="tile theme cov" href="'+hre
 function videoTile(href,name,c,seed,attr,ord,nw){
   return '<a class="tile cov" href="'+href+'"'+(attr||'')+'>'+cover(c,seed)+(ord?'<span class="ord">'+ord+'</span>':'')+(nw?'<span class="newtag'+(ord?' l':'')+'">Novo</span>':'')+'<span class="play">'+PLAY+'</span><span class="name">'+esc(name)+'</span></a>';
 }
-function catTile(c,ord){return videoTile('#catequese-'+c.id,c.titulo,c.capa,'c'+c.id,'',ord,newDate(c.data))}
+function headShare(h,txt){return '<div class="hs"><h1>'+h+'</h1>'+waBtn(txt,'Compartilhar esta série')+'</div><hr class="rule">'}
+function rowTile(href,name,c,seed,ord,nw){
+  return '<a class="srow" href="'+href+'"><span class="tile cov vt">'+cover(c,seed)+(ord?'<span class="ord">'+ord+'</span>':'')+(nw?'<span class="newtag'+(ord?' l':'')+'">Novo</span>':'')+'<span class="play">'+PLAY+'</span></span><span class="stt">'+esc(name)+'</span></a>';
+}
+function catTile(c,ord){return '<a class="tile cov vt" href="#catequese-'+c.id+'" aria-label="'+esc(c.titulo)+'">'+cover(c.capa,'c'+c.id)+(ord?'<span class="ord">'+ord+'</span>':'')+(newDate(c.data)?'<span class="newtag'+(ord?' l':'')+'">Novo</span>':'')+'<span class="play">'+PLAY+'</span></a>'}
 function gCount(g){return g.leva==='patr'?Object.keys(D.patr).length:(g.leva==='dual'?D.acess.length:D.cat.filter(function(c){return c.g===g.id}).length)}
 function gBar(g){
   var n=gCount(g);if(!n) return '';
@@ -511,22 +515,33 @@ function seeded(list,seed){
   for(i=a.length-1;i>0;i--){j=Math.floor(r()*(i+1));t=a[i];a[i]=a[j];a[j]=t}
   return a;
 }
-function poolSinais(){return D.sinais.filter(function(s){return !s.soon}).map(function(s){return {key:'s'+s.id,title:label(s),yt:s.yt,data:s.data,dia:s.dia,href:'#sinal-'+s.id}})}
-function poolCat(){return D.cat.map(function(c){return {key:'c'+c.id,title:c.titulo,yt:c.yt,data:c.data,dia:c.dia,href:'#catequese-'+c.id}})}
-/* Carrossel: primeiro o que se celebra hoje, depois os novos (7 dias), depois vídeos sortidos (os mesmos o dia todo) */
-function spotItems(pool){
-  var now=new Date(),seed=now.getFullYear()*372+(now.getMonth()+1)*31+now.getDate(),used={},out=[];
-  function add(x,sub){if(used[x.key]) return;used[x.key]=1;out.push({href:x.href,title:x.title,yt:x.yt,sub:sub})}
-  pool.filter(function(x){return celebHit(x.dia,now)}).forEach(function(x){add(x,'Celebração de hoje')});
-  pool.filter(function(x){return newDate(x.data)}).sort(function(a,b){return a.data<b.data?1:-1}).forEach(function(x){add(x,'Novo')});
-  seeded(pool,seed).forEach(function(x){if(out.length<5) add(x,'Para você')});
-  return out.slice(0,6);
+var VEIL='<img class="veil" src="favicon.svg" alt="" aria-hidden="true">';
+function addVeil(fr){if(fr&&!fr.querySelector('.veil')) fr.insertAdjacentHTML('beforeend',VEIL)}
+/* celebração: entra um dia antes e fica durante todo o dia */
+function celebNear(txt){var n=new Date();return celebHit(txt,n)||celebHit(txt,addD(n,1))}
+/* Carrossel (thumbnails sem título): Patrística, celebração, sinal, série. O que não tem destaque marcado na planilha fica de fora (exceto Patrística e sinal, que têm sugestão automática) */
+function carItems(withSinal){
+  var out=[],used={};
+  function add(href,yt){if(!yt||used[href]) return;used[href]=1;out.push({href:href,yt:yt})}
+  var ms=Object.keys(D.patr).sort(function(a,b){return a-b}),pv=null,m,i;
+  for(m=0;m<ms.length&&!pv;m++) for(i=0;i<D.patr[ms[m]].length;i++) if(D.patr[ms[m]][i].dest){pv={m:ms[m],i:i};break}
+  if(!pv&&ms.length&&D.patr[ms[0]].length) pv={m:ms[0],i:0};
+  if(pv) add('#video-patristica-'+pv.m+'-'+(pv.i+1),D.patr[pv.m][pv.i].orig);
+  if(withSinal) D.sinais.filter(function(x){return !x.soon&&celebNear(x.dia)}).forEach(function(x){add('#sinal-'+x.id,x.yt)});
+  D.cat.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt)});
+  if(withSinal){
+    var sd=D.sinais.filter(function(x){return !x.soon&&x.dest})[0]||recentList()[0];
+    if(sd) add('#sinal-'+sd.id,sd.yt);
+  }
+  var se=D.cat.filter(function(c){return c.g&&c.dest})[0];
+  if(se) add('#catequese-'+se.id,se.yt);
+  return out;
 }
-function spotItemsHtml(items){
+function carHtml(items){
   if(!items.length) return '';
-  var slides=items.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="'+x.href+'" style="background-image:var(--spotgrad),url('+thumb(x.yt)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.title)+'</span><span class="sub">'+esc(x.sub)+'</span></a>'}).join('');
+  var slides=items.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="'+x.href+'" aria-label="Assistir"><img src="'+ytimg(x.yt)+'" alt="" onerror="this.onerror=null;this.src=\''+thumb(x.yt)+'\'"><span class="play">'+PLAY+'</span></a>'}).join('');
   var dots=items.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
-  return '<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
+  return '<div class="spot thumb" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
 }
 /* Recomendamos: círculos com a logo do canal e o nome embaixo, rolando para o lado */
 function recHtml(){
@@ -590,7 +605,7 @@ var views={
     var hk=temasComSinais();
     var th=rodizio(hk).map(function(k,i){var t=themeTile(k);return i<TEMAS_POR_VEZ?t:t.replace(/^<a /,'<a hidden ')}).join('');
     var moreTh=hk.length>TEMAS_POR_VEZ?'<div class="morewrap"><button type="button" class="morebtn" id="moreth" aria-label="Mostrar mais temas" title="Mostrar mais temas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>':'';
-    var RL=recentList(),PAGE=5,spot=spotItemsHtml(spotItems(poolSinais().concat(poolCat())));
+    var RL=recentList(),PAGE=5,spot=carHtml(carItems(true));
     var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return (i<PAGE?t:t.replace(/^<a /,'<a hidden '))+(i===PAGE-1&&RL.length>PAGE?PLUS:'')}).join('');
     var more='';
@@ -636,7 +651,7 @@ var views={
     return head('Oração Eucarística')+'<div class="grid wide">'+D.euc.map(function(e){return barTile('#eucaristica-'+slug(e.num),'Oração Eucarística '+e.num,e.capa,'euc'+e.num)}).join('')+'</div>';
   },
   catequeses:function(){
-    var pool=poolCat(),spot=pool.length?spotItemsHtml(spotItems(pool)):'';
+    var spot=carHtml(carItems(false));
     var bars=D.grupos.map(gBar).join('');
     var rest=D.cat.filter(function(c){return !c.g}).sort(function(a,b){return a.titulo.localeCompare(b.titulo,'pt-BR')}),PG=5;
     var PLUSC='<button type="button" class="tile plus" id="morecq" aria-label="Mostrar mais catequeses" title="Mostrar mais catequeses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
@@ -647,15 +662,15 @@ var views={
       '<div class="cqs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg><input id="cqq" type="search" placeholder="Buscar catequese" aria-label="Buscar catequese" autocomplete="off"></div>'+
       '<div id="cqres"></div><div id="cqmain">'+
       (bars?'<section class="section"><div class="grid wide">'+bars+'</div></section>':'')+
-      (grid?'<section class="section"><div class="section-head"><h2>Mais catequeses</h2></div><hr class="rule"><div class="grid compact" id="cqgrid">'+grid+'</div></section>':'')+'</div>';
+      (grid?'<section class="section"><div class="section-head"><h2>Mais catequeses</h2></div><hr class="rule"><div class="grid vid" id="cqgrid">'+grid+'</div></section>':'')+'</div>';
   },
   patristica:function(){
     return head('Patrística')+'<div class="grid wide">'+Object.keys(D.patr).sort(function(a,b){return a-b}).map(function(m){return barTile('#patristica-'+m,'Módulo '+m,D.patr[m][0].capa,'patr'+m)}).join('')+'</div>';
   },
   acessibilidade:function(){
-    var g=D.acess.map(function(a,i){return videoTile('#video-acessibilidade-'+(i+1),a.titulo,a.capa,'ac'+i)}).join('');
+    var g=D.acess.map(function(a,i){return videoTile('#video-acessibilidade-'+(i+1),a.titulo,a.capa,'ac'+i).replace('class="tile cov"','class="tile cov vt"')}).join('');
     return head('Conteúdo Dual Play')+spotDual()+
-      (g?'<div class="grid compact" style="margin-top:26px">'+g+'</div>':'<p class="note">Em breve.</p>');
+      (g?'<div class="grid vid titled" style="margin-top:26px">'+g+'</div>':'<p class="note">Em breve.</p>');
   }
 };
 function sinalView(s){
@@ -686,13 +701,13 @@ function eucView(e){
   var T=['Versão Catlibras','Alternativas de estratégia de tradução','Tradução comentada'];
   var m=T.map(function(t,i){
     if(!e.v[i]) return '';
-    return '<a class="tile cov" href="#" data-video="Oração Eucarística '+esc(e.num)+' · '+esc(t)+'" data-yt="'+e.v[i]+'">'+cover({img:thumb(e.v[i]),x:'50%',y:'50%',z:1},e.num+t)+'<span class="play">'+PLAY+'</span><span class="name">'+esc(t)+'</span></a>';
+    return '<a class="tile cov vt" href="#" data-video="Oração Eucarística '+esc(e.num)+' · '+esc(t)+'" data-yt="'+e.v[i]+'">'+cover({img:thumb(e.v[i]),x:'50%',y:'50%',z:1},e.num+t)+'<span class="play">'+PLAY+'</span><span class="name">'+esc(t)+'</span></a>';
   }).join('');
-  return head('Oração Eucarística '+esc(e.num))+(m?'<div class="grid compact roomy">'+m+'</div>':'<p class="note">Em breve.</p>')+commentsBlock('eucaristica-'+slug(e.num),true);
+  return head('Oração Eucarística '+esc(e.num))+(m?'<div class="grid vid titled">'+m+'</div>':'<p class="note">Em breve.</p>')+commentsBlock('eucaristica-'+slug(e.num),true);
 }
 function patrView(m){
   var l=D.patr[m]||[];
-  return head('Patrística · Módulo '+esc(m))+'<div class="grid compact">'+l.map(function(v,i){return videoTile('#video-patristica-'+m+'-'+(i+1),v.nome,v.capa,'p'+m+'-'+i,'',i+1)}).join('')+'</div>';
+  return headShare('Patrística · Módulo '+esc(m),'Patrística · Módulo '+m+' – Catlibras '+location.href)+'<div class="slist">'+l.map(function(v,i){return rowTile('#video-patristica-'+m+'-'+(i+1),v.nome,v.capa,'p'+m+'-'+i,i+1)}).join('')+'</div>';
 }
 
 /* ---------- endereço da página (migalhas) ---------- */
@@ -731,13 +746,20 @@ function render(){
     var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='catequeses';cr.push(['Catequeses','#catequeses'],['Patrística','#patristica'],['Módulo '+pm,'#patristica-'+pm],[v.nome]);var nxh=pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'';after=function(){initDual(v,nxh)};
   } else if((mt=h.match(/^catequeses-(.+)$/))&&D.gBy[mt[1]]&&!D.gBy[mt[1]].leva){
     var gg=D.gBy[mt[1]],gl=D.cat.filter(function(c){return c.g===gg.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i});
-    html=head(esc(gg.nome))+(gg.desc?'<p class="lead">'+esc(gg.desc)+'</p>':'')+'<div class="grid compact">'+gl.map(function(c,i){return catTile(c,i+1)}).join('')+'</div>';
+    html=headShare(esc(gg.nome),gg.nome+' – Catlibras '+location.href)+(gg.desc?'<p class="lead">'+esc(gg.desc)+'</p>':'')+'<div class="slist">'+gl.map(function(c,i){return rowTile('#catequese-'+c.id,c.titulo,c.capa,'c'+c.id,i+1,newDate(c.data))}).join('')+'</div>';
     nav='catequeses';cr.push(['Catequeses','#catequeses'],[gg.nome]);
   } else if((mt=h.match(/^catequese-(.+)$/))&&D.catBy[mt[1]]){
     var cc=D.catBy[mt[1]],cg=cc.g?D.gBy[cc.g]:null,cl=cg?D.cat.filter(function(c){return c.g===cg.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i}):[],ci=cl.indexOf(cc);
-    html=dualView('#catequeses',{orig:cc.yt,terp:'',solo:true},cc.titulo,ci>0?'#catequese-'+cl[ci-1].id:'',(ci>-1&&ci<cl.length-1)?'#catequese-'+cl[ci+1].id:'');
+    var pnv='';
+    if(cg){
+      var pvc=cl[ci-1],nxc=cl[ci+1];
+      pnv='<nav class="pn" aria-label="Anterior e próximo em '+esc(cg.nome)+'">'+
+        (pvc?'<a href="#catequese-'+pvc.id+'"><small><span class="ar">《</span> Anterior</small><b>'+esc(pvc.titulo)+'</b></a>':'<span class="off"></span>')+
+        (nxc?'<a class="nx" href="#catequese-'+nxc.id+'"><small>Próximo <span class="ar">》</span></small><b>'+esc(nxc.titulo)+'</b></a>':'<span class="off"></span>')+'</nav>';
+    }
+    html='<div class="sp"><h1 class="sr">'+esc(cc.titulo)+'</h1><div class="solo"><div class="frame live" id="sf">'+poster(cc.yt,'Reproduzir '+cc.titulo)+VEIL+'</div>'+vctl(waBtn(cc.titulo+' '+location.href))+pnv+'</div></div>';
     nav='catequeses';cr.push(['Catequeses','#catequeses']);if(cg) cr.push([cg.nome,'#catequeses-'+cg.id]);cr.push([cc.titulo]);
-    after=function(){initDual({orig:cc.yt,terp:'',solo:true,ini:0})};
+    after=function(){var fr=$('#sf'),ps=$('.poster',fr);if(ps) ps.addEventListener('click',function(){mountSingle(fr,cc.yt,cc.titulo);addVeil(fr)})};
   } else if((mt=h.match(/^video-acessibilidade-(\d+)$/))&&D.acess[mt[1]-1]){
     var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'',a.canal);nav='catequeses';cr.push(['Catequeses','#catequeses'],['Conteúdo Dual Play','#acessibilidade'],[a.titulo]);after=function(){initDual(a)};
   } else if(views[h]){
@@ -753,7 +775,7 @@ function render(){
   document.body.classList.toggle('watch',h.indexOf('video-')===0);
   document.body.classList.toggle('home',home);
   document.body.classList.toggle('letras',h==='catalogo');
-  document.body.classList.toggle('solopage',h.indexOf('sinal-')===0);
+  document.body.classList.toggle('solopage',h.indexOf('sinal-')===0||h.indexOf('catequese-')===0);
   document.querySelectorAll('#menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   closeVideo();initSpot();maybeInstBar();
   if(h==='catalogo') fitLetters();
@@ -768,7 +790,7 @@ function initCq(){
     if(!v){res.innerHTML='';mn.hidden=false;return}
     var hit=D.cat.filter(function(c){return norm(c.titulo).indexOf(v)>-1||(c.g&&norm(D.gBy[c.g].nome).indexOf(v)>-1)}).sort(function(a,b){return a.titulo.localeCompare(b.titulo,'pt-BR')});
     mn.hidden=true;
-    res.innerHTML='<section class="section"><div class="section-head"><h2>Resultado</h2></div><hr class="rule">'+(hit.length?'<div class="grid compact">'+hit.map(function(c){return catTile(c)}).join('')+'</div>':'<p class="note">Nenhuma catequese encontrada.</p>')+'</section>';
+    res.innerHTML='<section class="section"><div class="section-head"><h2>Resultado</h2></div><hr class="rule">'+(hit.length?'<div class="grid vid">'+hit.map(function(c){return catTile(c)}).join('')+'</div>':'<p class="note">Nenhuma catequese encontrada.</p>')+'</section>';
   });
 }
 var spotTimer=null;
@@ -811,7 +833,7 @@ document.addEventListener('click',function(e){
     if(pl){ if(rest.length) pl.parentNode.insertBefore(pl,rest[0]); else pl.remove(); }
   }
   if(e.target.closest&&e.target.closest('#morecq')){
-    var hc=document.querySelectorAll('#cqgrid > a[hidden]'),nc=Math.min(5,hc.length),ic,pc=$('#morecq');
+    var hc=document.querySelectorAll('#cqgrid > a[hidden]'),nc=Math.min(4,hc.length),ic,pc=$('#morecq');
     for(ic=0;ic<nc;ic++) hc[ic].hidden=false;
     var rc=document.querySelectorAll('#cqgrid > a[hidden]');
     if(pc){ if(rc.length) pc.parentNode.insertBefore(pc,rc[0]); else pc.remove(); }
