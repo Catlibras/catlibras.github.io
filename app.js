@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-03b";
+var BUILD="2026-11-03c";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -53,10 +53,10 @@ function f(row,frag){
 function loadData(){
   var ex=window.DADOS_EXEMPLO;
   if(!CFG.SHEET_ID) return Promise.resolve({raw:fromExample(ex),source:'exemplo'});
-  var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos'];
+  var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos','Catequeses','Grupos de catequese'];
   return Promise.all(tabs.map(function(t){return fetchTab(t).catch(function(){return null})})).then(function(r){
     if(!r[0]&&!r[2]) throw new Error('offline');
-    return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[]},source:'planilha'};
+    return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[],catequeses:r[9]||[],grupos:r[10]||[]},source:'planilha'};
   });
 }
 function fromExample(ex){
@@ -71,16 +71,22 @@ function fromExample(ex){
     temas:a(ex.temas,{'tema':'tema','descricao':'descricao'}),
     equipe:[],
     config:[],
-    recomendamos:[]
+    recomendamos:[],
+    catequeses:[],
+    grupos:[]
   };
 }
 
 /* ---------- modelo ---------- */
-var D={sinais:[],temas:{},patr:{},euc:[],acess:[],equipe:[],rec:[],cfg:{},prefixos:[]};
+var D={sinais:[],temas:{},patr:{},euc:[],acess:[],equipe:[],rec:[],cfg:{},prefixos:[],cat:[],catBy:{},grupos:[],gBy:{}};
 var DEFAULT_PREF='padre, irmã, irmão, ir, frei, dom, dra, dr, madre, monsenhor, cardeal, papa, beato, beata, são, santo, santa, santas, santos';
 function ytimg(id){return 'https://i.ytimg.com/vi/'+id+'/hq720.jpg'}
+function imgUrl(u){
+  var m=String(u||'').match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{20,})/);
+  return m?'https://lh3.googleusercontent.com/d/'+m[1]:String(u||'');
+}
 function capaOf(r,fallbackId,def){
-  var img=String(f(r,'capa (link')||'').trim();
+  var img=imgUrl(String(f(r,'capa (link')||'').trim());
   def=img?{x:'50%',y:'50%',z:1}:(def||{x:'50%',y:'50%',z:1});
   function has(k){return String(f(r,k)).trim()!==''}
   return {img:img,yt:img?'':(fallbackId||''),x:has('capa x')?pct(f(r,'capa x')):def.x,y:has('capa y')?pct(f(r,'capa y')):def.y,z:has('capa zoom')?num(f(r,'capa zoom'),def.z):def.z};
@@ -107,7 +113,7 @@ function buildModel(raw){
       var k=slug(t); if(!D.temas[k]) D.temas[k]={nome:t,desc:'',capa:{img:'',x:'50%',y:'50%',z:1},extra:true}; return k;
     });
     D.sinais.push({id:id,titulo:titulo,nome:nomePrincipal(titulo),outros:String(f(r,'outros')||'').split(',').map(function(t){return t.trim()}).filter(Boolean),
-      sinonimos:String(f(r,'sinonimos')||''),temas:temas,yt:publicado?yt:'',soon:!publicado,data:publicado?data:'',capa:capaOf(r,publicado?yt:'',CAPA_SINAL),ordem:i});
+      sinonimos:String(f(r,'sinonimos')||''),dia:String(f(r,'dia de celebracao')||''),temas:temas,yt:publicado?yt:'',soon:!publicado,data:publicado?data:'',capa:capaOf(r,publicado?yt:'',CAPA_SINAL),ordem:i});
   });
   D.patr={};
   raw.patristica.filter(function(r){return norm(f(r,'ativo'))!=='nao'}).forEach(function(r){
@@ -123,6 +129,29 @@ function buildModel(raw){
   D.acess=raw.acessibilidade.filter(function(r){return norm(f(r,'ativo'))!=='nao'&&ytid(f(r,'link do original'))}).map(function(r){
     var o=ytid(f(r,'link do original'));
     return {titulo:String(f(r,'titulo')),canal:String(f(r,'canal')||''),orig:o,terp:ytid(f(r,'link do interprete')),ini:num(f(r,'inicio'),0),destaque:yes(f(r,'destaque')),capa:capaOf(r,o)};
+  });
+  /* Catequeses: grupos (barras) e vídeos do canal da paróquia */
+  D.cat=[];D.catBy={};D.grupos=[];D.gBy={};
+  (raw.grupos||[]).filter(function(r){return norm(f(r,'ativo'))!=='nao'}).forEach(function(r,i){
+    var nome=String(f(r,'grupo')).trim();if(!nome) return;
+    var lv=norm(f(r,'leva')),g={id:slug(nome),nome:nome,desc:String(f(r,'descricao')||''),leva:/patr/.test(lv)?'patr':(/dual|acess/.test(lv)?'dual':''),ordem:num(f(r,'ordem'),999),data:String(f(r,'data de')||'').slice(0,10),capa:capaOf(r,''),i:i};
+    D.grupos.push(g);D.gBy[g.id]=g;
+  });
+  D.grupos.sort(function(a,b){return a.ordem-b.ordem||a.i-b.i});
+  (raw.catequeses||[]).filter(function(r){return norm(f(r,'ativo'))!=='nao'}).forEach(function(r,i){
+    var yt=ytid(f(r,'link')),t=String(f(r,'titulo')).trim();if(!yt||!t) return;
+    var id=slug(t)||('c'+i);if(D.catBy[id]) id=id+'-'+(i+1);
+    var gid=slug(f(r,'grupo'));
+    var c={id:id,titulo:t,yt:yt,g:D.gBy[gid]?gid:'',ordem:num(f(r,'ordem'),999),dia:String(f(r,'dia de celebracao')||''),data:String(f(r,'data de')||'').slice(0,10),capa:capaOf(r,yt),i:i};
+    D.cat.push(c);D.catBy[id]=c;
+  });
+  D.grupos.forEach(function(g){
+    if(g.capa.img||g.capa.yt) return;
+    var first=null;
+    if(g.leva==='patr'){var ms=Object.keys(D.patr).sort(function(a,b){return a-b});if(ms.length&&D.patr[ms[0]].length) first=D.patr[ms[0]][0].orig}
+    else if(g.leva==='dual'){if(D.acess.length) first=D.acess[0].orig}
+    else{var l=D.cat.filter(function(c){return c.g===g.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i});if(l.length) first=l[0].yt}
+    if(first) g.capa.yt=first;
   });
   D.equipe=raw.equipe.slice().sort(function(a,b){return num(f(a,'ordem'),99)-num(f(b,'ordem'),99)});
   /* Recomendamos: canais do YouTube (nome, link do canal, logo, ordem, ativo) */
@@ -160,8 +189,16 @@ function themeTile(k){
   return '<a class="tile theme cov" href="#tema-'+k+'">'+cover(t.capa,k)+'<span class="name">'+esc(t.nome)+'</span>'+(t.desc?'<span class="sub">'+esc(t.desc)+'</span>':'')+'</a>';
 }
 function barTile(href,name,c,seed){return '<a class="tile theme cov" href="'+href+'">'+cover(c,seed)+'<span class="name">'+esc(name)+'</span></a>'}
-function videoTile(href,name,c,seed,attr){
-  return '<a class="tile cov" href="'+href+'"'+(attr||'')+'>'+cover(c,seed)+'<span class="play">'+PLAY+'</span><span class="name">'+esc(name)+'</span></a>';
+function videoTile(href,name,c,seed,attr,ord,nw){
+  return '<a class="tile cov" href="'+href+'"'+(attr||'')+'>'+cover(c,seed)+(ord?'<span class="ord">'+ord+'</span>':'')+(nw?'<span class="newtag'+(ord?' l':'')+'">Novo</span>':'')+'<span class="play">'+PLAY+'</span><span class="name">'+esc(name)+'</span></a>';
+}
+function catTile(c,ord){return videoTile('#catequese-'+c.id,c.titulo,c.capa,'c'+c.id,'',ord,newDate(c.data))}
+function gCount(g){return g.leva==='patr'?Object.keys(D.patr).length:(g.leva==='dual'?D.acess.length:D.cat.filter(function(c){return c.g===g.id}).length)}
+function gBar(g){
+  var n=gCount(g);if(!n) return '';
+  var href=g.leva==='patr'?'#patristica':(g.leva==='dual'?'#acessibilidade':'#catequeses-'+g.id);
+  var sub=g.leva==='patr'?(n+(n===1?' módulo':' módulos')):(n+(n===1?' vídeo':' vídeos'));
+  return '<a class="tile theme cov" href="'+href+'">'+cover(g.capa,'g'+g.id)+(newDate(g.data)?'<span class="newtag">Novo</span>':'')+'<span class="name">'+esc(g.nome)+'</span><span class="sub">'+esc(g.desc||sub)+'</span></a>';
 }
 var WAICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
 function waBtn(text,label){return '<a class="btn small wa" data-share="'+esc(text)+'" href="https://wa.me/?text='+encodeURIComponent(text)+'" target="_blank" rel="noopener" aria-label="'+(label||'Compartilhar')+'" title="'+(label||'Compartilhar')+'">'+WAICON+'</a>'}
@@ -247,10 +284,10 @@ function stopDual(){
 function dualView(back,it,title,prev,next,canal){
   var home='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg>';
   var sw=false;try{sw=localStorage.getItem('cl_swap')==='1'}catch(e){}
-  var cred='<p class="credit">Vídeo original'+(canal?' do canal '+esc(canal):'')+': <a href="https://youtu.be/'+esc(it.orig)+'" target="_blank" rel="noopener">assistir no YouTube</a>. Tradução em Libras: Catlibras.</p>';
-  return '<div class="dualpage"><div class="dual"><div class="pair'+(sw?' swap':'')+'">'+
-    '<div class="frame live orig" id="fo">'+poster(it.orig,'Reproduzir os dois vídeos')+'</div>'+
-    (it.terp?'<div class="frame live terp" id="ft">'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'<div class="frame live terp soonbox" id="ft"><span>Em breve - Tradução em Libras</span></div>')+
+  var cred=it.solo?'':'<p class="credit">Vídeo original'+(canal?' do canal '+esc(canal):'')+': <a href="https://youtu.be/'+esc(it.orig)+'" target="_blank" rel="noopener">assistir no YouTube</a>. Tradução em Libras: Catlibras.</p>';
+  return '<div class="dualpage"><div class="dual"><div class="pair'+(it.solo?' one':(sw?' swap':''))+'">'+
+    '<div class="frame live orig" id="fo">'+poster(it.orig,it.solo?'Reproduzir':'Reproduzir os dois vídeos')+'</div>'+
+    (it.solo?'':(it.terp?'<div class="frame live terp" id="ft">'+poster(it.terp,'Reproduzir os dois vídeos')+'</div>':'<div class="frame live terp soonbox" id="ft"><span>Em breve - Tradução em Libras</span></div>'))+
     '</div></div>'+
     '<div class="player-bar" id="pbar" role="group" aria-label="Navegação">'+
     '<a class="btn small ghost ctl-home" href="#inicio" aria-label="Início">'+home+'</a>'+
@@ -412,12 +449,83 @@ function isNew(s){
 function head(h){return '<h1>'+h+'</h1><hr class="rule">'}
 var DEF_WHATS='https://whatsapp.com/channel/0029VaGE5bbHwXb8n4YcpC3G',DEF_TELEGRAM='https://t.me/+HBcOID9aNCZlMDc5';
 /* Carrossel de destaque do Dual Play (usado no início e na página Conteúdo Dual Play) */
-function spotHtml(){
+function spotDual(){
   var dest=D.acess.map(function(a,i){return {a:a,i:i}}).filter(function(x){return x.a.destaque}).slice(0,3);
   if(!dest.length) dest=D.acess.slice(0,3).map(function(a,i){return {a:a,i:i}});
   if(!dest.length) return '';
   var slides=dest.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="#video-acessibilidade-'+(x.i+1)+'" style="background-image:var(--spotgrad),url('+thumb(x.a.orig)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.a.titulo)+'</span><span class="sub">'+esc(x.a.canal)+'</span></a>'}).join('');
   var dots=dest.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
+  return '<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
+}
+/* ---------- dias de celebração (datas fixas e móveis) ---------- */
+function easterOf(y){
+  var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,g=Math.floor((8*b+13)/25),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return new Date(y,mo-1,da);
+}
+function addD(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n)}
+function celebNames(y){
+  var E=easterOf(y),n25=new Date(y,11,25),dow=n25.getDay(),adv4=addD(n25,-(dow===0?7:dow)),adv1=addD(adv4,-21),epi=new Date(y,0,2),m={};
+  while(epi.getDay()!==0) epi=addD(epi,1);
+  function s(k,d){m[norm(k)]=d}
+  s('quarta-feira de cinzas',addD(E,-46));s('cinzas',addD(E,-46));
+  s('domingo de ramos',addD(E,-7));s('ramos',addD(E,-7));
+  s('quinta-feira santa',addD(E,-3));s('sexta-feira santa',addD(E,-2));s('sabado santo',addD(E,-1));
+  s('pascoa',E);s('domingo de pascoa',E);
+  s('divina misericordia',addD(E,7));s('domingo da divina misericordia',addD(E,7));
+  s('ascensao',addD(E,42));s('ascensao do senhor',addD(E,42));
+  s('pentecostes',addD(E,49));s('santissima trindade',addD(E,56));
+  s('corpus christi',addD(E,60));
+  s('sagrado coracao',addD(E,68));s('sagrado coracao de jesus',addD(E,68));
+  s('imaculado coracao de maria',addD(E,69));
+  s('cristo rei',addD(adv1,-7));
+  s('advento',adv1);s('primeiro domingo do advento',adv1);
+  s('sagrada familia',dow===0?new Date(y,11,30):addD(n25,7-dow));
+  s('epifania',epi);s('batismo do senhor',addD(epi,7));
+  return m;
+}
+/* a data escrita na planilha (25/12, 2026-12-25, Páscoa, Pentecostes+3...) cai hoje? */
+function celebHit(txt,now){
+  txt=String(txt||'').trim();if(!txt) return false;
+  now=now||new Date();
+  var y=now.getFullYear(),mo=now.getMonth()+1,da=now.getDate(),names=null;
+  return txt.split(/[,;]/).some(function(t){
+    t=t.trim();if(!t) return false;
+    var m=t.match(/^(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?$/);
+    if(m) return +m[1]===da&&+m[2]===mo;
+    m=t.match(/^\d{4}-(\d{2})-(\d{2})/);
+    if(m) return +m[2]===da&&+m[1]===mo;
+    m=t.match(/^(.*?)\s*([+-]\s*\d+)?$/);
+    names=names||celebNames(y);
+    var d=names[norm(m[1])];if(!d) return false;
+    d=addD(d,parseInt((m[2]||'0').replace(/\s/g,''),10)||0);
+    return d.getDate()===da&&d.getMonth()+1===mo;
+  });
+}
+function newDate(ds){
+  if(!ds) return false;
+  var d=new Date(ds+'T00:00:00');return !isNaN(d)&&(Date.now()-d.getTime())<7*864e5;
+}
+function seeded(list,seed){
+  var a=list.slice(),i,j,t;
+  function r(){seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296}
+  for(i=a.length-1;i>0;i--){j=Math.floor(r()*(i+1));t=a[i];a[i]=a[j];a[j]=t}
+  return a;
+}
+function poolSinais(){return D.sinais.filter(function(s){return !s.soon}).map(function(s){return {key:'s'+s.id,title:label(s),yt:s.yt,data:s.data,dia:s.dia,href:'#sinal-'+s.id}})}
+function poolCat(){return D.cat.map(function(c){return {key:'c'+c.id,title:c.titulo,yt:c.yt,data:c.data,dia:c.dia,href:'#catequese-'+c.id}})}
+/* Carrossel: primeiro o que se celebra hoje, depois os novos (7 dias), depois vídeos sortidos (os mesmos o dia todo) */
+function spotItems(pool){
+  var now=new Date(),seed=now.getFullYear()*372+(now.getMonth()+1)*31+now.getDate(),used={},out=[];
+  function add(x,sub){if(used[x.key]) return;used[x.key]=1;out.push({href:x.href,title:x.title,yt:x.yt,sub:sub})}
+  pool.filter(function(x){return celebHit(x.dia,now)}).forEach(function(x){add(x,'Celebração de hoje')});
+  pool.filter(function(x){return newDate(x.data)}).sort(function(a,b){return a.data<b.data?1:-1}).forEach(function(x){add(x,'Novo')});
+  seeded(pool,seed).forEach(function(x){if(out.length<5) add(x,'Para você')});
+  return out.slice(0,6);
+}
+function spotItemsHtml(items){
+  if(!items.length) return '';
+  var slides=items.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="'+x.href+'" style="background-image:var(--spotgrad),url('+thumb(x.yt)+');background-size:cover;background-position:center"><span class="play">'+PLAY+'</span><span class="name">'+esc(x.title)+'</span><span class="sub">'+esc(x.sub)+'</span></a>'}).join('');
+  var dots=items.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
   return '<div class="spot" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
 }
 /* Recomendamos: círculos com a logo do canal e o nome embaixo, rolando para o lado */
@@ -459,6 +567,7 @@ var IC={
   cat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
   pat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg>',
   euc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8a3.5 3.5 0 0 1 7 0"/><path d="M6.5 8h11v1.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 15v4.5"/><path d="M8 20.5h8"/></svg>',
+  catq:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.6c1.4 1.7 1.9 2.7 1.9 3.5a1.9 1.9 0 0 1-3.8 0c0-.8.5-1.8 1.9-3.5z"/><path d="M10.2 9.4h3.6v7.2h-3.6z"/><path d="M4.6 16.6h15.2l-2.3 3.8H8.4a3.8 3.8 0 0 1-3.8-3.8z"/></svg>',
   dual:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="13" height="10" rx="1.5"/><rect x="9" y="10" width="12.5" height="9" rx="1.5" class="cut"/><path d="M13.5 12.5v4l3.5-2z" fill="currentColor"/></svg>',
   lupa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
@@ -467,7 +576,7 @@ var IC={
 };
 function stripHtml(){
   function ci(h,t,ic,p){return '<a class="ci" href="'+h+'"><i'+(p?' class="p"':'')+'>'+ic+'</i>'+t+'</a>'}
-  return '<nav class="strip" aria-label="Seções">'+ci('#catalogo','Catálogo',IC.cat,1)+ci('#patristica','Patrística',IC.pat)+ci('#oracao-eucaristica','Oração Eucarística',IC.euc)+ci('#acessibilidade','Conteúdo Dual Play',IC.dual)+'</nav>';
+  return '<nav class="strip" aria-label="Seções">'+ci('#catalogo','Catálogo',IC.cat,1)+ci('#catequeses','Catequeses',IC.catq)+ci('#oracao-eucaristica','Oração Eucarística',IC.euc)+'</nav>';
 }
 function temasComSinais(){
   return (D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
@@ -481,7 +590,7 @@ var views={
     var hk=temasComSinais();
     var th=rodizio(hk).map(function(k,i){var t=themeTile(k);return i<TEMAS_POR_VEZ?t:t.replace(/^<a /,'<a hidden ')}).join('');
     var moreTh=hk.length>TEMAS_POR_VEZ?'<div class="morewrap"><button type="button" class="morebtn" id="moreth" aria-label="Mostrar mais temas" title="Mostrar mais temas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>':'';
-    var RL=recentList(),PAGE=5,spot=spotHtml();
+    var RL=recentList(),PAGE=5,spot=spotItemsHtml(spotItems(poolSinais().concat(poolCat())));
     var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return (i<PAGE?t:t.replace(/^<a /,'<a hidden '))+(i===PAGE-1&&RL.length>PAGE?PLUS:'')}).join('');
     var more='';
@@ -526,12 +635,26 @@ var views={
   'oracao-eucaristica':function(){
     return head('Oração Eucarística')+'<div class="grid wide">'+D.euc.map(function(e){return barTile('#eucaristica-'+slug(e.num),'Oração Eucarística '+e.num,e.capa,'euc'+e.num)}).join('')+'</div>';
   },
+  catequeses:function(){
+    var pool=poolCat(),spot=pool.length?spotItemsHtml(spotItems(pool)):'';
+    var bars=D.grupos.map(gBar).join('');
+    var rest=D.cat.filter(function(c){return !c.g}).sort(function(a,b){return a.titulo.localeCompare(b.titulo,'pt-BR')}),PG=5;
+    var PLUSC='<button type="button" class="tile plus" id="morecq" aria-label="Mostrar mais catequeses" title="Mostrar mais catequeses"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
+    var grid=rest.map(function(c,i){var t=catTile(c);return (i<PG?t:t.replace(/^<a /,'<a hidden '))+(i===PG-1&&rest.length>PG?PLUSC:'')}).join('');
+    if(!spot&&!bars&&!grid) return head('Catequeses')+'<p class="note">Em breve.</p>';
+    return head('Catequeses')+
+      (spot?'<section class="section spotsec">'+spot+'</section>':'')+
+      '<div class="cqs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg><input id="cqq" type="search" placeholder="Buscar catequese" aria-label="Buscar catequese" autocomplete="off"></div>'+
+      '<div id="cqres"></div><div id="cqmain">'+
+      (bars?'<section class="section"><div class="grid wide">'+bars+'</div></section>':'')+
+      (grid?'<section class="section"><div class="section-head"><h2>Mais catequeses</h2></div><hr class="rule"><div class="grid compact" id="cqgrid">'+grid+'</div></section>':'')+'</div>';
+  },
   patristica:function(){
     return head('Patrística')+'<div class="grid wide">'+Object.keys(D.patr).sort(function(a,b){return a-b}).map(function(m){return barTile('#patristica-'+m,'Módulo '+m,D.patr[m][0].capa,'patr'+m)}).join('')+'</div>';
   },
   acessibilidade:function(){
     var g=D.acess.map(function(a,i){return videoTile('#video-acessibilidade-'+(i+1),a.titulo,a.capa,'ac'+i)}).join('');
-    return head('Conteúdo Dual Play')+spotHtml()+
+    return head('Conteúdo Dual Play')+spotDual()+
       (g?'<div class="grid compact" style="margin-top:26px">'+g+'</div>':'<p class="note">Em breve.</p>');
   }
 };
@@ -569,7 +692,7 @@ function eucView(e){
 }
 function patrView(m){
   var l=D.patr[m]||[];
-  return head('Patrística · Módulo '+esc(m))+'<div class="grid compact">'+l.map(function(v,i){return videoTile('#video-patristica-'+m+'-'+(i+1),v.nome,v.capa,'p'+m+'-'+i)}).join('')+'</div>';
+  return head('Patrística · Módulo '+esc(m))+'<div class="grid compact">'+l.map(function(v,i){return videoTile('#video-patristica-'+m+'-'+(i+1),v.nome,v.capa,'p'+m+'-'+i,'',i+1)}).join('')+'</div>';
 }
 
 /* ---------- endereço da página (migalhas) ---------- */
@@ -603,16 +726,26 @@ function render(){
   } else if((mt=h.match(/^eucaristica-(.+)$/))&&D.euc.filter(function(e){return slug(e.num)===mt[1]})[0]){
     var e=D.euc.filter(function(x){return slug(x.num)===mt[1]})[0];html=eucView(e);nav='oracao';cr.push(['Oração Eucarística','#oracao-eucaristica'],['Oração Eucarística '+e.num]);after=function(){initComments('eucaristica-'+slug(e.num))};
   } else if((mt=h.match(/^patristica-(\d+)$/))&&D.patr[mt[1]]){
-    html=patrView(mt[1]);nav='patristica';cr.push(['Patrística','#patristica'],['Módulo '+mt[1]]);
+    html=patrView(mt[1]);nav='catequeses';cr.push(['Catequeses','#catequeses'],['Patrística','#patristica'],['Módulo '+mt[1]]);
   } else if((mt=h.match(/^video-patristica-(\d+)-(\d+)$/))&&D.patr[mt[1]]&&D.patr[mt[1]][mt[2]-1]){
-    var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='patristica';cr.push(['Patrística','#patristica'],['Módulo '+pm,'#patristica-'+pm],[v.nome]);var nxh=pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'';after=function(){initDual(v,nxh)};
+    var v=D.patr[mt[1]][mt[2]-1],pm=mt[1],pi=+mt[2],pl=D.patr[pm].length;html=dualView('#patristica-'+pm,v,v.nome,pi>1?'#video-patristica-'+pm+'-'+(pi-1):'',pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'');nav='catequeses';cr.push(['Catequeses','#catequeses'],['Patrística','#patristica'],['Módulo '+pm,'#patristica-'+pm],[v.nome]);var nxh=pi<pl?'#video-patristica-'+pm+'-'+(pi+1):'';after=function(){initDual(v,nxh)};
+  } else if((mt=h.match(/^catequeses-(.+)$/))&&D.gBy[mt[1]]&&!D.gBy[mt[1]].leva){
+    var gg=D.gBy[mt[1]],gl=D.cat.filter(function(c){return c.g===gg.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i});
+    html=head(esc(gg.nome))+(gg.desc?'<p class="lead">'+esc(gg.desc)+'</p>':'')+'<div class="grid compact">'+gl.map(function(c,i){return catTile(c,i+1)}).join('')+'</div>';
+    nav='catequeses';cr.push(['Catequeses','#catequeses'],[gg.nome]);
+  } else if((mt=h.match(/^catequese-(.+)$/))&&D.catBy[mt[1]]){
+    var cc=D.catBy[mt[1]],cg=cc.g?D.gBy[cc.g]:null,cl=cg?D.cat.filter(function(c){return c.g===cg.id}).sort(function(a,b){return a.ordem-b.ordem||a.i-b.i}):[],ci=cl.indexOf(cc);
+    html=dualView('#catequeses',{orig:cc.yt,terp:'',solo:true},cc.titulo,ci>0?'#catequese-'+cl[ci-1].id:'',(ci>-1&&ci<cl.length-1)?'#catequese-'+cl[ci+1].id:'');
+    nav='catequeses';cr.push(['Catequeses','#catequeses']);if(cg) cr.push([cg.nome,'#catequeses-'+cg.id]);cr.push([cc.titulo]);
+    after=function(){initDual({orig:cc.yt,terp:'',solo:true,ini:0})};
   } else if((mt=h.match(/^video-acessibilidade-(\d+)$/))&&D.acess[mt[1]-1]){
-    var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'',a.canal);nav='acessibilidade';cr.push(['Conteúdo Dual Play','#acessibilidade'],[a.titulo]);after=function(){initDual(a)};
+    var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'',a.canal);nav='catequeses';cr.push(['Catequeses','#catequeses'],['Conteúdo Dual Play','#acessibilidade'],[a.titulo]);after=function(){initDual(a)};
   } else if(views[h]){
-    html=views[h]();nav=({catalogo:'catalogo','oracao-eucaristica':'oracao',patristica:'patristica',acessibilidade:'acessibilidade'})[h]||'';
+    html=views[h]();nav=({catalogo:'catalogo','oracao-eucaristica':'oracao',catequeses:'catequeses',patristica:'catequeses',acessibilidade:'catequeses'})[h]||'';
+    if(h==='catequeses') after=initCq;
     home=(h==='inicio');
-    var NM={catalogo:'Catálogo',temas:'Temas','oracao-eucaristica':'Oração Eucarística',patristica:'Patrística',acessibilidade:'Conteúdo Dual Play',sobre:'Sobre',equipe:'Nossa equipe',contato:'Contato'};
-    if(!home) cr.push([NM[h]||h]);
+    var NM={catalogo:'Catálogo',temas:'Temas','oracao-eucaristica':'Oração Eucarística',patristica:'Patrística',acessibilidade:'Conteúdo Dual Play',sobre:'Sobre',equipe:'Nossa equipe',contato:'Contato',catequeses:'Catequeses'};
+    if(!home){if(h==='patristica'||h==='acessibilidade') cr.push(['Catequeses','#catequeses']);cr.push([NM[h]||h])}
   } else { html=views.inicio();home=true; }
   app.innerHTML=(home?'':crumbsHtml(cr))+html;
   $('#menu').hidden=home;
@@ -627,6 +760,16 @@ function render(){
   if(after) after();
   window.scrollTo(0,0);
   hit(h);
+}
+function initCq(){
+  var q=$('#cqq');if(!q) return;
+  q.addEventListener('input',function(){
+    var v=norm(q.value),res=$('#cqres'),mn=$('#cqmain');
+    if(!v){res.innerHTML='';mn.hidden=false;return}
+    var hit=D.cat.filter(function(c){return norm(c.titulo).indexOf(v)>-1||(c.g&&norm(D.gBy[c.g].nome).indexOf(v)>-1)}).sort(function(a,b){return a.titulo.localeCompare(b.titulo,'pt-BR')});
+    mn.hidden=true;
+    res.innerHTML='<section class="section"><div class="section-head"><h2>Resultado</h2></div><hr class="rule">'+(hit.length?'<div class="grid compact">'+hit.map(function(c){return catTile(c)}).join('')+'</div>':'<p class="note">Nenhuma catequese encontrada.</p>')+'</section>';
+  });
 }
 var spotTimer=null;
 function initSpot(){
@@ -666,6 +809,12 @@ document.addEventListener('click',function(e){
     for(i=0;i<n;i++) hid[i].hidden=false;
     var rest=document.querySelectorAll('#recent > a[hidden]');
     if(pl){ if(rest.length) pl.parentNode.insertBefore(pl,rest[0]); else pl.remove(); }
+  }
+  if(e.target.closest&&e.target.closest('#morecq')){
+    var hc=document.querySelectorAll('#cqgrid > a[hidden]'),nc=Math.min(5,hc.length),ic,pc=$('#morecq');
+    for(ic=0;ic<nc;ic++) hc[ic].hidden=false;
+    var rc=document.querySelectorAll('#cqgrid > a[hidden]');
+    if(pc){ if(rc.length) pc.parentNode.insertBefore(pc,rc[0]); else pc.remove(); }
   }
   if(e.target.closest&&e.target.closest('#moreth')){
     location.hash='#temas';
