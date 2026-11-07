@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-06a";
+var BUILD="2026-11-07a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -591,6 +591,35 @@ function carItems(withSinal){
   }
   return out;
 }
+/* Carrossel da página Catequeses (5 entradas): Patrística nos primeiros 6 meses (selo Novo), depois catequeses e séries (celebração e destaque primeiro, o resto sorteado). Sem nenhuma catequese: 2 em alta + 2 sorteados + Patrística */
+function mixArr(a){a=a.slice();for(var q=a.length-1;q>0;q--){var r=Math.floor(Math.random()*(q+1)),t=a[q];a[q]=a[r];a[r]=t}return a}
+function catCarItems(){
+  var out=[],used={},N=5;
+  function add(h,y){if(!y||used[h]||out.length>=N) return;used[h]=1;out.push({href:h,yt:y})}
+  var ms=Object.keys(D.patr).sort(function(a,b){return a-b}),m,i;
+  function patrItems(max){
+    var pv=null;
+    for(m=0;m<ms.length&&!pv;m++) for(i=0;i<D.patr[ms[m]].length;i++) if(D.patr[ms[m]][i].dest){pv={m:ms[m],i:i};break}
+    if(!pv&&ms.length&&D.patr[ms[0]].length) pv={m:ms[0],i:0};
+    if(pv) add('#video-patristica-'+pv.m+'-'+(pv.i+1),D.patr[pv.m][pv.i].orig);
+    ms.forEach(function(k){if(max>1&&pv&&k!==pv.m&&D.patr[k].length) add('#video-patristica-'+k+'-1',D.patr[k][0].orig)});
+  }
+  var cats=D.cat.filter(function(c){return c.yt});
+  if(!cats.length){
+    patrItems(1);
+    var bySin={};D.sinais.forEach(function(x){bySin[x.id]=x});
+    var okS=function(x){return x&&!x.soon&&x.yt};
+    var tr=(D.trend||[]).map(function(t){return bySin[t.id]}).filter(okS).slice(0,2);
+    tr.forEach(function(x){add('#sinal-'+x.id,x.yt)});
+    mixArr(D.sinais.filter(okS)).forEach(function(x){add('#sinal-'+x.id,x.yt)});
+    return out.slice(0,N);
+  }
+  if(D.grupos.some(function(g){return g.leva==='patr'&&newDate(g.data,183)})) patrItems(2);
+  cats.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt)});
+  cats.filter(function(c){return c.dest}).forEach(function(c){add('#catequese-'+c.id,c.yt)});
+  mixArr(cats).forEach(function(c){add('#catequese-'+c.id,c.yt)});
+  return out;
+}
 function carHtml(items){
   if(!items.length) return '';
   var slides=items.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="'+x.href+'" aria-label="Assistir"><img src="'+ytimg(x.yt)+'" data-id="'+x.yt+'" alt="" onload="ytOk(this)" onerror="ytOk(this,1)"><span class="play">'+PLAY+'</span></a>'}).join('');
@@ -705,7 +734,7 @@ var views={
     return head('Oração Eucarística')+'<div class="grid wide">'+D.euc.map(function(e){return barTile('#eucaristica-'+slug(e.num),'Oração Eucarística '+e.num,e.capa,'euc'+e.num)}).join('')+'</div>';
   },
   catequeses:function(){
-    var spot=carHtml(carItems(false));
+    var spot=carHtml(catCarItems());
     var fixed=[],pool=[];
     D.grupos.forEach(function(g){var h=gBar(g);if(!h) return;(g.leva==='patr'&&newDate(g.data,183)?fixed:pool).push(h)});
     var NB=4,vis=NB-fixed.length;pool=seeded(pool,Math.floor(Math.random()*4294967295));
