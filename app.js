@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-07a";
+var BUILD="2026-11-09a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -55,10 +55,10 @@ function f(row,frag){
 function loadData(){
   var ex=window.DADOS_EXEMPLO;
   if(!CFG.SHEET_ID) return Promise.resolve({raw:fromExample(ex),source:'exemplo'});
-  var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos','Catequeses','Grupos de catequese','Tendências'];
+  var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos','Catequeses','Grupos de catequese','Tendências','Tem sinal?'];
   return Promise.all(tabs.map(function(t){return fetchTab(t).catch(function(){return null})})).then(function(r){
     if(!r[0]&&!r[2]) throw new Error('offline');
-    return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[],catequeses:r[9]||[],grupos:r[10]||[],tendencias:r[11]||[]},source:'planilha'};
+    return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[],catequeses:r[9]||[],grupos:r[10]||[],tendencias:r[11]||[],temsinal:r[12]||[]},source:'planilha'};
   });
 }
 function fromExample(ex){
@@ -75,7 +75,8 @@ function fromExample(ex){
     config:[],
     recomendamos:[],
     catequeses:[],
-    grupos:[]
+    grupos:[],
+    temsinal:[]
   };
 }
 
@@ -158,6 +159,14 @@ function buildModel(raw){
     if(first) g.capa.yt=first;
   });
   D.equipe=raw.equipe.slice().sort(function(a,b){return num(f(a,'ordem'),99)-num(f(b,'ordem'),99)});
+  /* Tem sinal?: termos ainda sem sinal estabelecido (Termo, Explicação, Vídeo, Ativo, Data) */
+  D.ts=[];var tsUsed={};
+  (raw.temsinal||[]).forEach(function(r,i){
+    var nm=String(f(r,'termo')).trim();if(!nm||norm(f(r,'ativo'))==='nao') return;
+    var id=slug(nm)||('t'+i);if(tsUsed[id]) id=id+'-'+(i+1);tsUsed[id]=1;
+    var vl=String(f(r,'video')||'').trim(),dm=vl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]{20,})/);
+    D.ts.push({id:id,nome:nm,exp:String(f(r,'explicacao')||'').trim(),yt:ytid(vl),drive:dm?dm[1]:'',data:String(f(r,'data')||'').slice(0,10),ordem:i});
+  });
   /* Recomendamos: canais do YouTube (nome, link do canal, logo, ordem, ativo) */
   D.rec=(raw.recomendamos||[]).filter(function(r){return norm(f(r,'ativo'))!=='nao'&&String(f(r,'canal')||f(r,'nome')).trim()&&/^https?:\/\//i.test(String(f(r,'link')).trim())}).map(function(r,i){
     return {nome:String(f(r,'canal')||f(r,'nome')).trim(),link:String(f(r,'link')).trim(),logo:String(f(r,'logo')).trim(),ordem:num(f(r,'ordem'),999),i:i};
@@ -378,7 +387,7 @@ function cmActions(li,c){
   bar.appendChild(be);bar.appendChild(bd);li.appendChild(bar);
   bd.addEventListener('click',function(){
     if(!confirm('Apagar este comentário?')) return;
-    cmSend({acao:'apagar',id:c.id,chave:k}).then(function(){li.remove()}).catch(function(){alert('Não foi possível apagar agora.')});
+    cmSend({acao:'apagar',id:c.id,chave:k}).then(function(){li.remove();mineDel(c.id)}).catch(function(){alert('Não foi possível apagar agora.')});
   });
   be.addEventListener('click',function(){
     var p=li.querySelector('p');if(!p||li.querySelector('.cedit')) return;
@@ -396,83 +405,166 @@ function cmActions(li,c){
     });
   });
 }
+/* ---------- limites de vídeo, "meus envios" e "Eu uso" ---------- */
+function tgUrl(){var u=String(D.cfg.contato_telegram||DEF_TELEGRAM).trim();return /^https:\/\//i.test(u)?u:DEF_TELEGRAM}
+function isTs(key){return String(key).indexOf('tem-sinal-')===0}
+function vlim(key){return isTs(key)?2:(String(key).indexOf('sinal-')===0?1:0)}
+function lsGet(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function devId(){try{var d=localStorage.getItem('cl_dev');if(!/^[a-f0-9]{32}$/.test(d||'')){d=rnd();localStorage.setItem('cl_dev',d)}return d}catch(e){return ''}}
+function vquota(key){var l=vlim(key);return l?Math.max(0,l-(lsGet('cl_vc',{})[key]||0)):99}
+function vcInc(key){var o=lsGet('cl_vc',{});o[key]=(o[key]||0)+1;lsSet('cl_vc',o)}
+function limitMsg(key){var l=vlim(key);return 'Cada celular pode enviar até '+l+(l===1?' vídeo':' vídeos')+(isTs(key)?' neste termo':' neste sinal')+'. Para debater mais, use o <a href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum">Fórum Catlibras no Telegram</a>.'}
+function mineGet(){return lsGet('cl_mine',[])}
+function mineAdd(x){var a=mineGet();a.unshift(x);lsSet('cl_mine',a.slice(0,50))}
+function mineDel(id){lsSet('cl_mine',mineGet().filter(function(x){return x.id!==id}))}
+function ufGet(){try{return localStorage.getItem('cl_uf')||''}catch(e){return ''}}
+var CMLIST=[],cmHook=null;
+function ufOptions(){return '<option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option>'}
+function euBar(li,c){
+  if(!c.id) return;
+  var ts=isTs(CMKEY);if(!ts&&!c.video) return;
+  var wrap=document.createElement('div');wrap.className='eubar';
+  var b=document.createElement('button');b.type='button';b.className='eu';
+  var st=document.createElement('span');st.className='eust';
+  var pick=document.createElement('div');pick.className='eupick';pick.hidden=true;
+  var sel=document.createElement('select');sel.setAttribute('aria-label','Seu Estado');sel.innerHTML=ufOptions();
+  var lab=document.createElement('span');lab.textContent='Seu Estado: ';pick.appendChild(lab);pick.appendChild(sel);
+  c.eu=c.eu||0;c.euUF=c.euUF||{};
+  function on(){return !!lsGet('cl_eu',{})[c.id]}
+  function paint(){
+    b.className='eu'+(on()?' on':'');b.setAttribute('aria-pressed',on()?'true':'false');
+    b.textContent=(on()?'Eu uso ✓ ':'Eu uso ')+c.eu;
+    st.textContent=Object.keys(c.euUF).filter(function(k){return c.euUF[k]>0}).sort(function(a,z){return c.euUF[z]-c.euUF[a]||a.localeCompare(z)}).map(function(k){return k+' '+c.euUF[k]}).join(' · ');
+  }
+  function mark(uf){
+    var o=lsGet('cl_eu',{});o[c.id]=uf;lsSet('cl_eu',o);
+    c.eu++;c.euUF[uf]=(c.euUF[uf]||0)+1;paint();pick.hidden=true;
+    cmSend({acao:'euuso',id:c.id,estado:uf,aparelho:devId()}).catch(function(){});
+    ev('tem-sinal/eu-uso');if(cmHook)cmHook(CMLIST);
+  }
+  b.addEventListener('click',function(){
+    if(on()){
+      var o=lsGet('cl_eu',{}),uf=o[c.id];delete o[c.id];lsSet('cl_eu',o);
+      c.eu=Math.max(0,c.eu-1);if(uf&&c.euUF[uf])c.euUF[uf]--;paint();
+      cmSend({acao:'euuso-desfazer',id:c.id,aparelho:devId()}).catch(function(){});
+      if(cmHook)cmHook(CMLIST);return;
+    }
+    var u=ufGet();
+    if(u){mark(u);return}
+    pick.hidden=false;sel.focus();
+  });
+  sel.addEventListener('change',function(){if(!sel.value)return;try{localStorage.setItem('cl_uf',sel.value)}catch(e){}mark(sel.value)});
+  wrap.appendChild(b);wrap.appendChild(st);wrap.appendChild(pick);li.appendChild(wrap);paint();
+}
 function commentsBlock(key,withVideo){
   if(!CFG.COMENTARIOS_URL) return '';
-  return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Comentários</h2>'+
+  var ts=isTs(key),q=vquota(key);
+  var vbtns=withVideo?(q>0?'<label class="btn small ghost filebtn">Gravar agora<input type="file" id="cvr" accept="video/*" capture="user" data-ev="tem-sinal/gravar-agora"></label><label class="btn small ghost filebtn">Enviar vídeo<input type="file" id="cv" accept="video/*"></label>':''):'';
+  return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">'+(ts?'Sua resposta':'Comentários')+'</h2>'+
     '<form class="form" id="cform" novalidate>'+
     '<div><label for="cn">Seu nome</label><input type="text" id="cn" autocomplete="name" maxlength="60"></div>'+
-    '<div><label for="ce">Seu Estado</label><select id="ce"><option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option></select></div>'+
-    '<div><label for="ct">Seu comentário</label><textarea id="ct" maxlength="1500"></textarea></div>'+
+    '<div><label for="ce">Seu Estado</label><select id="ce">'+ufOptions()+'</select></div>'+
+    (ts?'<fieldset class="tipo"><legend>Sua resposta é</legend><label><input type="radio" name="ctp" value="sugestao"> Sugestão de sinal</label><label><input type="radio" name="ctp" value="uso"> Sinal usado na minha região</label></fieldset>':'')+
+    '<div><label for="ct">'+(ts?'Texto (opcional se enviar vídeo)':'Seu comentário')+'</label><textarea id="ct" maxlength="1500"></textarea></div>'+
     '<div class="cform-hp" aria-hidden="true"><label>Não preencha<input type="text" id="chp" tabindex="-1" autocomplete="off"></label></div>'+
-    '<div class="row"><button class="btn small" type="submit">Publicar comentário</button>'+
-    (withVideo?'<label class="btn small ghost filebtn">Enviar vídeo<input type="file" id="cv" accept="video/*"></label>':'')+'</div>'+
-    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz este sinal em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
+    '<div class="row"><button class="btn small" type="submit">'+(ts?'Enviar resposta':'Publicar comentário')+'</button>'+
+    (withVideo?'<span class="vrow" id="cvrow">'+vbtns+'</span>':'')+'</div>'+
+    (withVideo?'<p class="note vlim" id="cvlim"'+(q>0?' hidden':'')+'>'+(q>0?'':limitMsg(key))+'</p>':'')+
+    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz '+(ts?'este sinal':'este sinal')+' em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
+    (ts?'<p class="note">Sua resposta aparece depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
     '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>'+
+    (ts?'<h2 class="rh2">Respostas</h2>':'')+
     '<ul class="clist" id="clist"></ul></section></section>';
 }
 function addComment(c,top){
   var li=document.createElement('li'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
   b.textContent=(c.nome||'Visitante')+(c.estado?' - '+c.estado:'');sp.textContent=(c.data||'')+(c.editado?' · editado':'');p.textContent=c.texto||'';
-  li.appendChild(b);li.appendChild(sp);if(c.texto)li.appendChild(p);
+  li.appendChild(b);li.appendChild(sp);
+  if(c.tipo==='sugestao'||c.tipo==='uso'){var tg=document.createElement('em');tg.className='ctag '+(c.tipo==='uso'?'u':'s');tg.textContent=c.tipo==='uso'?'Usado na minha região':'Sugestão';li.appendChild(tg)}
+  if(c.validada){var vd=document.createElement('em');vd.className='ctag v';vd.textContent='Validado';li.appendChild(vd)}
+  if(c.texto)li.appendChild(p);
   if(c.video){var m=String(c.video).match(/[-\w]{20,}/);if(m){var fr=document.createElement('iframe');fr.src='https://drive.google.com/file/d/'+m[0]+'/preview';fr.setAttribute('allow','autoplay');fr.style.cssText='width:100%;aspect-ratio:16/9;border:0;border-radius:4px;margin-top:8px';fr.title='Vídeo enviado';li.appendChild(fr)}}
+  euBar(li,c);
   cmActions(li,c);
   var l=$('#clist');if(!l)return;
   if(top) l.insertBefore(li,l.firstChild); else l.appendChild(li);
 }
 function initComments(key){
   var form=$('#cform'); if(!form) return;
-  CMKEY=key;
-  fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];cs.forEach(function(c){addComment(c,false)});
+  CMKEY=key;CMLIST=[];
+  var ts=isTs(key);
+  fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];CMLIST=cs;cs.forEach(function(c){addComment(c,false)});
+    if(cmHook)cmHook(cs);
     var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
   var st=$('#cs');
   function showPend(){var el=$('#pend');if(el)el.hidden=!pendGet().some(function(x){return x.k===key})}
   showPend();
+  function tipoVal(){var r=form.querySelector('input[name=ctp]:checked');return r?r.value:''}
   function post(body){
-    body.pagina=key;var ce=$('#ce');if(ce&&ce.value)body.estado=ce.value;body.site=$('#chp').value;body.tempo=Date.now()-pageStart;
+    body.pagina=key;var ce=$('#ce');if(ce&&ce.value)body.estado=ce.value;body.site=$('#chp').value;body.tempo=Date.now()-pageStart;body.aparelho=devId();
+    if(ts)body.tipo=tipoVal();
     return fetch(CFG.COMENTARIOS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
   }
   function limited(){
     try{var a=JSON.parse(localStorage.getItem('cl_c')||'[]').filter(function(t){return Date.now()-t<60000});if(a.length>=4)return true;a.push(Date.now());localStorage.setItem('cl_c',JSON.stringify(a))}catch(e){}
     return false;
   }
+  function termoNome(){var t=ts?D.ts.filter(function(x){return 'tem-sinal-'+x.id===key})[0]:null;return t?t.nome:''}
+  function needTipo(){if(ts&&!tipoVal()){st.textContent='Escolha: sugestão de sinal ou sinal usado na sua região.';return true}return false}
+  function updQuota(){
+    var q=vquota(key),row=$('#cvrow'),ln=$('#cvlim');if(!row||!ln) return;
+    if(q<=0){row.innerHTML='';ln.hidden=false;ln.innerHTML=limitMsg(key)}
+  }
   form.addEventListener('submit',function(e){
     e.preventDefault();
     var t=$('#ct').value.trim(),n=$('#cn').value.trim();
     if(!n){st.textContent='Preencha seu nome.';$('#cn').focus();return}
     if(!$('#ce').value){st.textContent='Escolha o seu Estado.';$('#ce').focus();return}
-    if(!t){st.textContent='Escreva o comentário antes de publicar.';return}
+    if(needTipo()) return;
+    if(!t){st.textContent=ts?'Escreva o texto ou envie um vídeo.':'Escreva o comentário antes de publicar.';return}
     if($('#chp').value||Date.now()-pageStart<3000){st.textContent='Tente de novo em instantes.';return}
     if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';return}
-    var nid=rnd(),nk=rnd();post({nome:n,texto:t,id:nid,chave:nk}).then(function(){ev('comentario-enviado');var ow=ownGet();ow[nid]=nk;ownSet(ow);addComment({id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado.'}).catch(function(){st.textContent='Não foi possível enviar agora.'});
+    var nid=rnd(),nk=rnd();
+    post({nome:n,texto:t,id:nid,chave:nk}).then(function(){
+      var ow=ownGet();ow[nid]=nk;ownSet(ow);
+      if(ts){ev('tem-sinal/resposta-enviada');mineAdd({k:key,id:nid,t:'texto',termo:termoNome(),ts:Date.now()});$('#ct').value='';st.textContent='Recebemos sua resposta. Ela aparece depois da aprovação da equipe. Obrigado!';return}
+      ev('comentario-enviado');addComment({id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado.';
+    }).catch(function(){st.textContent='Não foi possível enviar agora.'});
   });
-  var fv=$('#cv');
   function durOk(file,cb){
     var v=document.createElement('video'),u=URL.createObjectURL(file),done=false;
     function fin(ok){if(done)return;done=true;URL.revokeObjectURL(u);cb(ok)}
     v.preload='metadata';v.onloadedmetadata=function(){fin(!(v.duration>15.5))};v.onerror=function(){fin(true)};
     setTimeout(function(){fin(true)},4000);v.src=u;
   }
-  if(fv) fv.addEventListener('click',function(e){
-    var h=$('#cvh');if(h)h.hidden=false;
-    if(!$('#cn').value.trim()||!($('#ce')||{}).value){e.preventDefault();st.textContent='Para enviar um vídeo, preencha seu nome e escolha o Estado. Depois toque em Enviar vídeo.';(!$('#cn').value.trim()?$('#cn'):$('#ce')).focus()}
-  });
-  if(fv) fv.addEventListener('change',function(){
-    var file=fv.files&&fv.files[0]; if(!file) return;
-    if(file.size>35*1024*1024){st.textContent='O vídeo é grande demais (máximo 35 MB).';fv.value='';return}
-    durOk(file,function(ok){
-    if(!ok){st.textContent='O vídeo deve ter até 15 segundos.';fv.value='';return}
-    if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';fv.value='';return}
-    st.textContent='Enviando o vídeo...';
-    var rd=new FileReader();
-    rd.onload=function(){
-      var n=$('#cn').value.trim();
-      var vid=rnd(),vk=rnd(),ow=ownGet();ow[vid]=vk;ownSet(ow);
-      post({nome:n,texto:$('#ct').value.trim(),id:vid,chave:vk,arquivo:{nome:file.name,tipo:file.type,dados:String(rd.result).split(',')[1]}})
-        .then(function(){ev('video-enviado');st.textContent='Recebemos seu vídeo. Obrigado por contribuir! Ele aparecerá nesta página depois da nossa análise.';fv.value='';var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend()})
-        .catch(function(){st.textContent='Não foi possível enviar o vídeo agora.'});
-    };
-    rd.readAsDataURL(file);
+  [$('#cv'),$('#cvr')].forEach(function(fv){
+    if(!fv) return;
+    fv.addEventListener('click',function(e){
+      var h=$('#cvh');if(h)h.hidden=false;
+      if(!$('#cn').value.trim()||!($('#ce')||{}).value){e.preventDefault();st.textContent='Para enviar um vídeo, preencha seu nome e escolha o Estado. Depois toque no botão do vídeo.';(!$('#cn').value.trim()?$('#cn'):$('#ce')).focus();return}
+      if(needTipo()){e.preventDefault();return}
+      if(vquota(key)<=0){e.preventDefault();updQuota()}
+    });
+    fv.addEventListener('change',function(){
+      var file=fv.files&&fv.files[0]; if(!file) return;
+      if(vquota(key)<=0){fv.value='';updQuota();return}
+      if(file.size>35*1024*1024){st.textContent='O vídeo é grande demais (máximo 35 MB).';fv.value='';return}
+      durOk(file,function(ok){
+      if(!ok){st.textContent='O vídeo deve ter até 15 segundos.';fv.value='';return}
+      if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';fv.value='';return}
+      st.textContent='Enviando o vídeo...';
+      var rd=new FileReader();
+      rd.onload=function(){
+        var n=$('#cn').value.trim();
+        var vid=rnd(),vk=rnd(),ow=ownGet();ow[vid]=vk;ownSet(ow);
+        post({nome:n,texto:$('#ct').value.trim(),id:vid,chave:vk,arquivo:{nome:file.name,tipo:file.type,dados:String(rd.result).split(',')[1]}})
+          .then(function(){ev(ts?'tem-sinal/video-enviado':'video-enviado');vcInc(key);if(ts)mineAdd({k:key,id:vid,t:'video',termo:termoNome(),ts:Date.now()});st.textContent='Recebemos seu vídeo. Obrigado por contribuir! Ele aparecerá nesta página depois da nossa análise.';fv.value='';var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend();updQuota()})
+          .catch(function(){st.textContent='Não foi possível enviar o vídeo agora.'});
+      };
+      rd.readAsDataURL(file);
+      });
     });
   });
 }
@@ -667,6 +759,8 @@ var IC={
   euc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8a3.5 3.5 0 0 1 7 0"/><path d="M6.5 8h11v1.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 15v4.5"/><path d="M8 20.5h8"/></svg>',
   catq:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.6c1.4 1.7 1.9 2.7 1.9 3.5a1.9 1.9 0 0 1-3.8 0c0-.8.5-1.8 1.9-3.5z"/><path d="M10.2 9.4h3.6v7.2h-3.6z"/><path d="M4.6 16.6h15.2l-2.3 3.8H8.4a3.8 3.8 0 0 1-3.8-3.8z"/></svg>',
   dual:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="13" height="10" rx="1.5"/><rect x="9" y="10" width="12.5" height="9" rx="1.5" class="cut"/><path d="M13.5 12.5v4l3.5-2z" fill="currentColor"/></svg>',
+  q:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4.5 4v-4H6a2 2 0 0 1-2-2z"/><path d="M9.7 8.6a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.8-1.1 1.5"/><path d="M12 14.2h.01"/></svg>',
+  ck:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   lupa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   lua:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
@@ -674,12 +768,117 @@ var IC={
 };
 function stripHtml(){
   function ci(h,t,ic,p){return '<a class="ci" href="'+h+'"><i'+(p?' class="p"':'')+'>'+ic+'</i>'+t+'</a>'}
-  return '<nav class="strip" aria-label="Seções">'+ci('#catalogo','Catálogo',IC.cat,1)+ci('#catequeses','Catequeses',IC.catq)+ci('#oracao-eucaristica','Oração Eucarística',IC.euc)+'</nav>';
+  return '<nav class="strip" aria-label="Seções">'+ci('#catalogo','Catálogo',IC.cat,1)+ci('#catequeses','Catequeses',IC.catq)+ci('#oracao-eucaristica','Oração Eucarística',IC.euc)+ci('#tem-sinal','Tem sinal?',IC.q)+'</nav>';
 }
 function temasComSinais(){
   return (D.temasHome.length?D.temasHome:Object.keys(D.temas)).filter(function(k){return D.temas[k]&&D.sinais.some(function(x){return x.temas.indexOf(k)>-1})});
 }
+
+/* ---------- Tem sinal? ---------- */
+var TSC={},TSOK=false,tsOrd='az',tsHide=false;
+try{tsHide=localStorage.getItem('cl_ts_hide')==='1'}catch(e){}
+function tsBy(id){return D.ts.filter(function(t){return t.id===id})[0]}
+function tsCnt(t){return TSC[t.id]?TSC[t.id].n:0}
+function tsVal(t){return !!(TSC[t.id]&&TSC[t.id].v)}
+function tsItems(){
+  var L=D.ts.slice();
+  if(tsHide&&TSOK) L=L.filter(function(t){return !tsVal(t)});
+  if(tsOrd==='zero') L=L.filter(function(t){return TSOK&&!tsCnt(t)&&!tsVal(t)});
+  var az=function(a,b){return chave(a.nome).localeCompare(chave(b.nome),'pt-BR')};
+  if(tsOrd==='new') L.sort(function(a,b){return (b.data||'').localeCompare(a.data||'')||b.ordem-a.ordem});
+  else if(tsOrd==='most') L.sort(function(a,b){return tsCnt(b)-tsCnt(a)||az(a,b)});
+  else L.sort(az);
+  return L;
+}
+function tsTile(t){
+  var badge='';
+  if(TSOK) badge=tsVal(t)?'<span class="tsb ok" role="img" aria-label="Validado" title="Validado">'+IC.ck+'</span>':'<span class="tsb'+(tsCnt(t)?'':' z')+'" role="img" aria-label="'+tsCnt(t)+' respostas" title="'+tsCnt(t)+' respostas">'+tsCnt(t)+'</span>';
+  return '<a class="tile cov ts" href="#tem-sinal-'+t.id+'">'+cover({img:'',x:'50%',y:'50%',z:1},'ts'+t.id)+((t.yt||t.drive)?'<span class="play">'+PLAY+'</span>':'')+badge+'<span class="name">'+esc(t.nome)+'</span></a>';
+}
+function tsPaint(){
+  var g=$('#tsgrid');if(!g) return;
+  var L=tsItems();
+  g.innerHTML=L.length?L.map(tsTile).join(''):'';
+  var em=$('#tsempty');if(em) em.hidden=L.length>0;
+  document.querySelectorAll('.tsch[data-o]').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-o')===tsOrd?'true':'false')});
+  var h=$('#tshide');if(h){h.setAttribute('aria-pressed',tsHide?'true':'false');h.textContent=tsHide?'Mostrar validados':'Ocultar validados'}
+}
+function tsViewHtml(){
+  if(!D.ts.length) return head('Tem sinal?')+'<p class="note">Em breve.</p>';
+  function ch(k,l){return '<button type="button" class="tsch" data-o="'+k+'" data-ev="tem-sinal/filtro-'+k+'" aria-pressed="false">'+l+'</button>'}
+  return head('Tem sinal?')+'<p class="lead tslead">Termos que ainda não têm sinal estabelecido. Toque em um termo e mostre o sinal que você usa ou sugere.</p>'+
+    '<div class="tschips">'+ch('az','A–Z')+ch('new','Mais novos')+ch('most','Mais respondidos')+ch('zero','Sem resposta')+
+    '<button type="button" class="tsch" id="tshide" data-ev="tem-sinal/filtro-ocultar-validados" aria-pressed="false">Ocultar validados</button>'+
+    '<a class="tsch" href="#meus-envios">Meus envios</a></div>'+
+    '<div class="grid compact tsgrid" id="tsgrid"></div><p class="note" id="tsempty" hidden>Nenhum termo aqui.</p>';
+}
+function tsInit(){
+  if(!$('#tsgrid')) return;
+  tsPaint();
+  document.querySelectorAll('.tsch[data-o]').forEach(function(b){b.addEventListener('click',function(){tsOrd=b.getAttribute('data-o');tsPaint()})});
+  var h=$('#tshide');if(h)h.addEventListener('click',function(){tsHide=!tsHide;try{localStorage.setItem('cl_ts_hide',tsHide?'1':'0')}catch(e){}tsPaint()});
+  if(CFG.COMENTARIOS_URL) fetch(CFG.COMENTARIOS_URL+'?resumo=tem-sinal').then(function(r){return r.json()}).then(function(j){TSC=j.contagens||{};TSOK=true;tsPaint()}).catch(function(){});
+}
+function driveFrame(id,title){return '<iframe src="https://drive.google.com/file/d/'+id+'/preview" allow="autoplay" title="'+esc(title)+'" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'}
+function tsPage(t){
+  var key='tem-sinal-'+t.id;
+  var vid=t.yt?'<div class="tsvid"><div class="frame live" id="sf">'+poster(t.yt,'Reproduzir '+t.nome)+'</div></div>':(t.drive?'<div class="tsvid"><div class="frame live">'+driveFrame(t.drive,'Explicação: '+t.nome)+'</div></div>':'');
+  var link=location.origin+location.pathname+'#tem-sinal-'+t.id;
+  var msg='Você conhece o sinal de "'+t.nome+'" em Libras? Ajude o Catlibras a responder: '+link;
+  return '<div class="tspage"><h1>'+esc(t.nome)+'</h1><hr class="rule">'+
+    '<div id="tsval"></div>'+vid+(t.exp?'<p class="tsexp">'+esc(t.exp).replace(/\n+/g,'<br>')+'</p>':'')+
+    '<div class="aviso">Propostas da comunidade, não são sinais oficiais.</div>'+
+    '<p class="tsres" id="tsres"></p>'+
+    '<div class="tsacts"><a class="btn small" href="#" data-goform="1" data-ev="tem-sinal/responder">Responder</a>'+
+    '<a class="btn small ghost" data-share="'+esc(msg)+'" href="https://wa.me/?text='+encodeURIComponent(msg)+'" target="_blank" rel="noopener">Ajude a responder</a></div>'+
+    commentsBlock(key,true)+
+    '<div class="tsforum"><p class="note">Quer debater mais? O Fórum no Telegram tem mais espaço para conversar.</p><a class="btn small ghost" href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum">Debater no Fórum (Telegram)</a></div></div>';
+}
+function tsPageInit(t){
+  var sf=$('#sf'),ps=sf&&$('.poster',sf);
+  if(ps) ps.addEventListener('click',function(){mountSingle(sf,t.yt,t.nome)});
+  var go=$('[data-goform]');
+  if(go) go.addEventListener('click',function(e){e.preventDefault();var f=$('#cform');if(f){f.scrollIntoView({behavior:'smooth',block:'start'});var n=$('#cn');if(n)setTimeout(function(){n.focus({preventScroll:true})},400)}});
+  cmHook=function(cs){
+    var u=0,sg=0,m={},val=null;
+    cs.forEach(function(c){
+      if(c.tipo==='uso'){u++;if(c.estado)m[c.estado]=(m[c.estado]||0)+1}else if(c.tipo==='sugestao')sg++;
+      var e=c.euUF||{};Object.keys(e).forEach(function(k){if(e[k]>0)m[k]=(m[k]||0)+e[k]});
+      if(c.validada&&!val)val=c;
+    });
+    var st=Object.keys(m).sort(function(a,z){return m[z]-m[a]||a.localeCompare(z)}).map(function(k){return k+' '+m[k]}).join(' · ');
+    var r=$('#tsres');
+    if(r) r.innerHTML=(cs.length?'<b>Usado: '+u+' · Sugestões: '+sg+'</b>':'<b>Ainda sem respostas. Seja o primeiro.</b>')+(st?'<br>Quem usa, por Estado: '+esc(st):'');
+    var vb=$('#tsval');
+    if(vb){
+      if(val){
+        var vm=String(val.video||'').match(/[-\w]{20,}/);
+        vb.innerHTML='<section class="tsvalbox"><h2>Sinal validado</h2>'+(vm?'<div class="tsvid"><div class="frame live">'+driveFrame(vm[0],'Sinal validado: '+t.nome)+'</div></div>':'')+(val.texto?'<p>'+esc(val.texto)+'</p>':'')+'<small>'+esc((val.nome||'')+(val.estado?' - '+val.estado:''))+'</small></section>';
+      } else vb.innerHTML='';
+    }
+  };
+  ev('tem-sinal/termo/'+t.id,true);
+  initComments('tem-sinal-'+t.id);
+}
+function meusView(){return head('Meus envios')+'<p class="note">Guardados neste aparelho.</p><div class="meus" id="meus"><p class="note">Carregando...</p></div>'}
+function meusInit(){
+  var box=$('#meus');if(!box) return;
+  var L=mineGet();
+  if(!L.length){box.innerHTML='<p class="note">Você ainda não enviou nada.</p>';return}
+  var keys=[];L.forEach(function(x){if(keys.indexOf(x.k)<0)keys.push(x.k)});
+  Promise.all(keys.map(function(k){return fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(k)).then(function(r){return r.json()}).then(function(j){return {k:k,cs:j.comentarios||[]}}).catch(function(){return {k:k,cs:null}})})).then(function(rs){
+    var by={};rs.forEach(function(r){by[r.k]=r.cs});
+    box.innerHTML='<ul class="meuslist">'+L.map(function(x){
+      var cs=by[x.k],found=cs&&cs.filter(function(c){return c.id===x.id})[0];
+      var stt=found?(found.validada?['Validado','v']:['Publicado','p']):(cs===null?['Sem conexão','a']:['Aguardando aprovação','a']);
+      var d=new Date(x.ts),dt=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+String(d.getFullYear()).slice(-2);
+      return '<li><span><a href="#'+esc(x.k)+'">'+esc(x.termo||x.k.slice(10))+'</a> · '+(x.t==='video'?'vídeo':'texto')+' · '+dt+'</span><b class="st '+stt[1]+'">'+stt[0]+'</b></li>';
+    }).join('')+'</ul>';
+  });
+}
+
 var views={
+  'tem-sinal':tsViewHtml,
   temas:function(){
     var g=temasComSinais().map(themeTile).join('');
     return head('Temas')+(g?'<div class="grid wide">'+g+'</div>':'<p class="note">Em breve.</p>');
@@ -807,7 +1006,7 @@ function crumbsHtml(list){
 function render(){
   stopDual();stopSingle();
   var h=(location.hash||'#inicio').slice(1),html,nav='',after=null,mt,home=false,cr=[['Início','#inicio']];
-  pageStart=Date.now();
+  pageStart=Date.now();cmHook=null;
   if((mt=h.match(/^tema-(.+)$/))&&D.temas[mt[1]]){
     lastTheme=mt[1];var k=mt[1];cr.push(['Temas','#temas'],[D.temas[k].nome]);var list=sorted(D.sinais.filter(function(s){return s.temas.indexOf(k)>-1}));
     html='<p class="eyebrow">Tema</p><h1>'+esc(D.temas[k].nome)+'</h1>'+(D.temas[k].desc?'<p class="lead">'+esc(D.temas[k].desc)+'</p>':'')+'<hr class="rule" style="margin-top:20px"><div class="grid compact">'+list.map(function(s){return signTile(s,false)}).join('')+'</div>';
@@ -824,6 +1023,10 @@ function render(){
       if(ps) ps.addEventListener('click',function(){mountSingle(fr,s.yt,s.titulo)});
       initComments('sinal-'+s.id);
     };
+  } else if((mt=h.match(/^tem-sinal-(.+)$/))&&tsBy(mt[1])){
+    var tt=tsBy(mt[1]);html=tsPage(tt);nav='temsinal';cr.push(['Tem sinal?','#tem-sinal'],[tt.nome]);after=function(){tsPageInit(tt)};
+  } else if(h==='meus-envios'){
+    html=meusView();nav='temsinal';cr.push(['Tem sinal?','#tem-sinal'],['Meus envios']);after=meusInit;
   } else if((mt=h.match(/^eucaristica-(.+)$/))&&D.euc.filter(function(e){return slug(e.num)===mt[1]})[0]){
     var e=D.euc.filter(function(x){return slug(x.num)===mt[1]})[0];html=eucView(e);nav='oracao';cr.push(['Oração Eucarística','#oracao-eucaristica'],['Oração Eucarística '+e.num]);after=function(){initComments('eucaristica-'+slug(e.num))};
   } else if((mt=h.match(/^patristica-(\d+)$/))&&D.patr[mt[1]]){
@@ -849,10 +1052,11 @@ function render(){
   } else if((mt=h.match(/^video-acessibilidade-(\d+)$/))&&D.acess[mt[1]-1]){
     var ai=+mt[1],a=D.acess[ai-1];html=dualView('#acessibilidade',a,a.titulo,ai>1?'#video-acessibilidade-'+(ai-1):'',ai<D.acess.length?'#video-acessibilidade-'+(ai+1):'',a.canal);nav='catequeses';cr.push(['Catequeses','#catequeses'],['Conteúdo Dual Play','#acessibilidade'],[a.titulo]);after=function(){initDual(a)};
   } else if(views[h]){
-    html=views[h]();nav=({catalogo:'catalogo','oracao-eucaristica':'oracao',catequeses:'catequeses',patristica:'catequeses',acessibilidade:'catequeses'})[h]||'';
+    html=views[h]();nav=({catalogo:'catalogo','oracao-eucaristica':'oracao',catequeses:'catequeses',patristica:'catequeses',acessibilidade:'catequeses','tem-sinal':'temsinal'})[h]||'';
     if(h==='catequeses') after=initCq;
+    if(h==='tem-sinal') after=tsInit;
     home=(h==='inicio');
-    var NM={catalogo:'Catálogo',temas:'Temas','oracao-eucaristica':'Oração Eucarística',patristica:'Patrística',acessibilidade:'Conteúdo Dual Play',sobre:'Sobre',equipe:'Nossa equipe',contato:'Contato',catequeses:'Catequeses'};
+    var NM={catalogo:'Catálogo',temas:'Temas','oracao-eucaristica':'Oração Eucarística',patristica:'Patrística',acessibilidade:'Conteúdo Dual Play',sobre:'Sobre',equipe:'Nossa equipe',contato:'Contato',catequeses:'Catequeses','tem-sinal':'Tem sinal?'};
     if(!home){if(h==='patristica'||h==='acessibilidade') cr.push(['Catequeses','#catequeses']);cr.push([NM[h]||h])}
   } else { html=views.inicio();home=true; }
   app.innerHTML=(home?'':crumbsHtml(cr))+html;
@@ -914,7 +1118,7 @@ document.addEventListener('click',function(e){
   var sp=e.target.closest&&e.target.closest('[data-speed]');
   if(sp){sp.parentNode.querySelectorAll('[data-speed]').forEach(function(b){b.setAttribute('aria-pressed',b===sp?'true':'false')});applySpeed(parseFloat(sp.getAttribute('data-speed')))}
   if(e.target.closest&&e.target.closest('#more')){
-    var hid=document.querySelectorAll('#recent > a[hidden]'),n=Math.min(6,hid.length),i,pl=$('#more');
+    var hid=document.querySelectorAll('#recent > a[hidden]'),n=Math.min((window.matchMedia&&matchMedia('(min-width:1000px) and (min-aspect-ratio:1/1)').matches)?9:6,hid.length),i,pl=$('#more');
     for(i=0;i<n;i++) hid[i].hidden=false;
     var rest=document.querySelectorAll('#recent > a[hidden]');
     if(pl){ if(rest.length) pl.parentNode.insertBefore(pl,rest[0]); else pl.remove(); }
@@ -1060,6 +1264,7 @@ document.addEventListener('click',function(e){
   if(t.closest('[data-share]')) ev('compartilhar/'+(location.hash.slice(1)||'inicio').slice(0,60));
   if(t.closest('.poster')) ev('play/'+(location.hash.slice(1)||'inicio').slice(0,60));
   if(t.closest('#instgo')) ev('clicou-instalar');
+  var de=t.closest('[data-ev]');if(de) ev(de.getAttribute('data-ev'));
 },true);
 window.addEventListener('appinstalled',function(){ev('instalou-app')});
 /* ---------- visitas (GoatCounter): cada página do site conta como uma visita ---------- */
