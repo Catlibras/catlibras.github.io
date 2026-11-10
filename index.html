@@ -386,7 +386,7 @@ a.pw:hover .photo{border-color:var(--gold)}
 .pn .ar{font-family:'Source Serif 4',serif;letter-spacing:.02em}
 /* Sinal na horizontal: cabeçalho não fica fixo e o vídeo cabe na altura da tela */
 @media (min-aspect-ratio:1/1){
-  .top{position:static}
+  .top{position:relative}
   .solo{max-width:min(900px,calc((100dvh - 64px) * 16 / 9))}
   .vctl,.pn{max-width:min(900px,calc((100dvh - 64px) * 16 / 9))}
 }
@@ -646,7 +646,7 @@ select option:disabled,select option[value=""]{color:#5b6475}
 .tsch[aria-pressed="true"]{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
 .tsb{position:absolute;right:7px;top:7px;z-index:3;min-width:26px;height:22px;padding:0 6px;border-radius:12px 12px 12px 3px;background:#fff;color:#0b1b3a;font-size:12px;font-weight:800;line-height:22px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .tsb.z{background:rgba(255,255,255,.62);color:#4a4430}
-.tsb.ok{background:#d4a52a;color:#0b1b3a;border-radius:50%;width:24px;min-width:24px;height:24px;padding:0;display:grid;place-items:center}
+.tsb.ok{background:#1f9d55;color:#fff;border-radius:50%;width:24px;min-width:24px;height:24px;padding:0;display:grid;place-items:center}
 .tsb.ok svg{width:14px;height:14px}
 .grid.compact .tile.ts .play{left:8px;top:8px}
 .tsvid{max-width:720px;margin:0 0 14px}
@@ -655,8 +655,8 @@ select option:disabled,select option[value=""]{color:#5b6475}
 .tsres{font-size:14px;color:var(--silver);margin:0 0 12px;max-width:720px}
 .tsres b{color:var(--ice)}
 .tsacts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}
-.tsvalbox{max-width:720px;margin:0 0 18px;padding:14px 16px;border:2px solid var(--gold);border-radius:4px;background:var(--box)}
-.tsvalbox h2{font-size:15px;margin:0 0 10px;color:var(--gold-soft)}
+.tsvalbox{max-width:720px;margin:0 0 18px;padding:14px 16px;border:2px solid #1f9d55;border-radius:4px;background:var(--box)}
+.tsvalbox h2{font-size:15px;margin:0 0 10px;color:#1f9d55}
 .tsvalbox p{margin:8px 0 0;font-family:var(--font-serif);font-size:16.5px}
 .tsvalbox small{display:block;margin-top:6px;color:var(--muted)}
 .tsforum{max-width:720px;margin:26px 0 0;padding-top:18px;border-top:1px solid var(--line)}
@@ -668,7 +668,8 @@ select option:disabled,select option[value=""]{color:#5b6475}
 .vlim a{color:var(--gold-soft)}
 .ctag{display:inline-block;font-style:normal;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:10px;padding:2px 8px;margin-left:8px;vertical-align:middle;border:1px solid var(--gold);color:var(--gold-soft)}
 .ctag.u{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
-.ctag.v{background:#d4a52a;border-color:#d4a52a;color:#0b1b3a}
+.ctag.v{background:#1f9d55;border-color:#1f9d55;color:#fff}
+.ctag.e{background:var(--gold);border-color:var(--gold);color:#1a1405}
 .eubar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px}
 .eu{font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ice);background:transparent;border:1px solid var(--gold);border-radius:16px;padding:5px 12px}
 .eu.on{background:#d4a52a;border-color:#d4a52a;color:#0b1b3a}
@@ -679,7 +680,17 @@ select option:disabled,select option[value=""]{color:#5b6475}
 .meuslist li{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:4px;background:var(--box);font-size:14.5px}
 .meuslist a{color:var(--gold-soft);font-weight:600}
 .meuslist .st{font-size:12.5px;white-space:nowrap}
-.meuslist .st.a{color:var(--muted)}.meuslist .st.p{color:var(--ice)}.meuslist .st.v{color:var(--gold-soft)}
+.meuslist .st.a{color:var(--muted)}.meuslist .st.p{color:var(--ice)}.meuslist .st.v{color:#1f9d55}
+.form[hidden]{display:none}
+#copen{margin:0 0 16px}
+.resp2{margin-top:26px}
+.tssug{margin-top:10px}
+.tssugnote{text-align:center;margin:8px 0 0}
+.tsimgs{display:grid;gap:8px;max-width:720px;margin:0 0 14px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.tsimgs.n1{grid-template-columns:minmax(0,1fr)}
+.tsimgs.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tsimgs a{display:block;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--box)}
+.tsimgs img{display:block;width:100%;height:auto;max-height:420px;object-fit:cover}
 </style>
 </head>
 <body>

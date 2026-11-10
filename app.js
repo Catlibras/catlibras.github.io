@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-09a";
+var BUILD="2026-11-09c";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -165,7 +165,8 @@ function buildModel(raw){
     var nm=String(f(r,'termo')).trim();if(!nm||norm(f(r,'ativo'))==='nao') return;
     var id=slug(nm)||('t'+i);if(tsUsed[id]) id=id+'-'+(i+1);tsUsed[id]=1;
     var vl=String(f(r,'video')||'').trim(),dm=vl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]{20,})/);
-    D.ts.push({id:id,nome:nm,exp:String(f(r,'explicacao')||'').trim(),yt:ytid(vl),drive:dm?dm[1]:'',data:String(f(r,'data')||'').slice(0,10),ordem:i});
+    var imgs=['imagem 1','imagem 2','imagem 3'].map(function(k){return imgUrl(String(f(r,k)||'').trim())}).filter(function(u){return /^https?:\/\//.test(u)});
+    D.ts.push({id:id,nome:nm,exp:String(f(r,'explicacao')||'').trim(),yt:ytid(vl),drive:dm?dm[1]:'',data:String(f(r,'data')||'').slice(0,10),ordem:i,capa:capaOf(r,ytid(vl)),imgs:imgs});
   });
   /* Recomendamos: canais do YouTube (nome, link do canal, logo, ordem, ativo) */
   D.rec=(raw.recomendamos||[]).filter(function(r){return norm(f(r,'ativo'))!=='nao'&&String(f(r,'canal')||f(r,'nome')).trim()&&/^https?:\/\//i.test(String(f(r,'link')).trim())}).map(function(r,i){
@@ -419,7 +420,7 @@ function mineGet(){return lsGet('cl_mine',[])}
 function mineAdd(x){var a=mineGet();a.unshift(x);lsSet('cl_mine',a.slice(0,50))}
 function mineDel(id){lsSet('cl_mine',mineGet().filter(function(x){return x.id!==id}))}
 function ufGet(){try{return localStorage.getItem('cl_uf')||''}catch(e){return ''}}
-var CMLIST=[],cmHook=null;
+var CMLIST=[],cmHook=null,AUTO=false;
 function ufOptions(){return '<option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option>'}
 function euBar(li,c){
   if(!c.id) return;
@@ -461,8 +462,8 @@ function commentsBlock(key,withVideo){
   if(!CFG.COMENTARIOS_URL) return '';
   var ts=isTs(key),q=vquota(key);
   var vbtns=withVideo?(q>0?'<label class="btn small ghost filebtn">Gravar agora<input type="file" id="cvr" accept="video/*" capture="user" data-ev="tem-sinal/gravar-agora"></label><label class="btn small ghost filebtn">Enviar vídeo<input type="file" id="cv" accept="video/*"></label>':''):'';
-  return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">'+(ts?'Sua resposta':'Comentários')+'</h2>'+
-    '<form class="form" id="cform" novalidate>'+
+  var form='<button type="button" class="btn small" id="copen">'+(ts?'Enviar resposta':'Enviar comentário')+'</button>'+
+    '<form class="form" id="cform" novalidate hidden>'+
     '<div><label for="cn">Seu nome</label><input type="text" id="cn" autocomplete="name" maxlength="60"></div>'+
     '<div><label for="ce">Seu Estado</label><select id="ce">'+ufOptions()+'</select></div>'+
     (ts?'<fieldset class="tipo"><legend>Sua resposta é</legend><label><input type="radio" name="ctp" value="sugestao"> Sugestão de sinal</label><label><input type="radio" name="ctp" value="uso"> Sinal usado na minha região</label></fieldset>':'')+
@@ -471,18 +472,20 @@ function commentsBlock(key,withVideo){
     '<div class="row"><button class="btn small" type="submit">'+(ts?'Enviar resposta':'Publicar comentário')+'</button>'+
     (withVideo?'<span class="vrow" id="cvrow">'+vbtns+'</span>':'')+'</div>'+
     (withVideo?'<p class="note vlim" id="cvlim"'+(q>0?' hidden':'')+'>'+(q>0?'':limitMsg(key))+'</p>':'')+
-    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz '+(ts?'este sinal':'este sinal')+' em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
-    (ts?'<p class="note">Sua resposta aparece depois da aprovação da equipe.</p>':'')+
+    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz este sinal em Libras. Ele aparece no site depois da aprovação da equipe.</p>':'')+
+    (ts?'<p class="note" id="cnote">Sua resposta aparece depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
-    '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>'+
-    (ts?'<h2 class="rh2">Respostas</h2>':'')+
-    '<ul class="clist" id="clist"></ul></section></section>';
+    '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>';
+  var list='<ul class="clist" id="clist"></ul>';
+  if(ts) return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Respostas</h2>'+list+'<h2 class="rh2 resp2" id="cfh">Sua resposta</h2>'+form+'</section></section>';
+  return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Comentários</h2>'+form+list+'</section></section>';
 }
 function addComment(c,top){
   var li=document.createElement('li'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
   b.textContent=(c.nome||'Visitante')+(c.estado?' - '+c.estado:'');sp.textContent=(c.data||'')+(c.editado?' · editado':'');p.textContent=c.texto||'';
   li.appendChild(b);li.appendChild(sp);
   if(c.tipo==='sugestao'||c.tipo==='uso'){var tg=document.createElement('em');tg.className='ctag '+(c.tipo==='uso'?'u':'s');tg.textContent=c.tipo==='uso'?'Usado na minha região':'Sugestão';li.appendChild(tg)}
+  if(c.equipe){var eq=document.createElement('em');eq.className='ctag e';eq.textContent='Equipe';li.appendChild(eq)}
   if(c.validada){var vd=document.createElement('em');vd.className='ctag v';vd.textContent='Validado';li.appendChild(vd)}
   if(c.texto)li.appendChild(p);
   if(c.video){var m=String(c.video).match(/[-\w]{20,}/);if(m){var fr=document.createElement('iframe');fr.src='https://drive.google.com/file/d/'+m[0]+'/preview';fr.setAttribute('allow','autoplay');fr.style.cssText='width:100%;aspect-ratio:16/9;border:0;border-radius:4px;margin-top:8px';fr.title='Vídeo enviado';li.appendChild(fr)}}
@@ -495,7 +498,10 @@ function initComments(key){
   var form=$('#cform'); if(!form) return;
   CMKEY=key;CMLIST=[];
   var ts=isTs(key);
-  fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];CMLIST=cs;cs.forEach(function(c){addComment(c,false)});
+  var co=$('#copen');if(co) co.addEventListener('click',function(){form.hidden=false;co.hidden=true;var n=$('#cn');if(n)n.focus()});
+  fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];CMLIST=cs;AUTO=!!j.auto;
+    if(AUTO){var cn=$('#cnote');if(cn)cn.textContent='Sua resposta aparece logo depois do envio.';var vh=$('#cvh');if(vh)vh.textContent='Envie um vídeo de até 15 segundos, com até 35 MB, mostrando como você faz este sinal em Libras. Ele aparece no site em instantes.'}
+    cs.forEach(function(c){addComment(c,false)});
     if(cmHook)cmHook(cs);
     var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
   var st=$('#cs');
@@ -529,8 +535,10 @@ function initComments(key){
     var nid=rnd(),nk=rnd();
     post({nome:n,texto:t,id:nid,chave:nk}).then(function(){
       var ow=ownGet();ow[nid]=nk;ownSet(ow);
-      if(ts){ev('tem-sinal/resposta-enviada');mineAdd({k:key,id:nid,t:'texto',termo:termoNome(),ts:Date.now()});$('#ct').value='';st.textContent='Recebemos sua resposta. Ela aparece depois da aprovação da equipe. Obrigado!';return}
-      ev('comentario-enviado');addComment({id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado.';
+      if(ts){ev('tem-sinal/resposta-enviada');mineAdd({k:key,id:nid,t:'texto',termo:termoNome(),ts:Date.now()});
+        if(AUTO){var c0={id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora',tipo:tipoVal(),eu:0,euUF:{}};CMLIST.unshift(c0);addComment(c0,true);if(cmHook)cmHook(CMLIST);$('#ct').value='';st.textContent='Resposta enviada. Obrigado por participar! Ela já aparece aqui.';return}
+        $('#ct').value='';st.textContent='Resposta enviada. Obrigado por participar! Ela aparece aqui depois da aprovação da equipe.';return}
+      ev('comentario-enviado');addComment({id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora'},true);$('#ct').value='';st.textContent='Comentário enviado. Obrigado por participar! Sua contribuição ajuda a comunidade surda católica.';
     }).catch(function(){st.textContent='Não foi possível enviar agora.'});
   });
   function durOk(file,cb){
@@ -560,7 +568,7 @@ function initComments(key){
         var n=$('#cn').value.trim();
         var vid=rnd(),vk=rnd(),ow=ownGet();ow[vid]=vk;ownSet(ow);
         post({nome:n,texto:$('#ct').value.trim(),id:vid,chave:vk,arquivo:{nome:file.name,tipo:file.type,dados:String(rd.result).split(',')[1]}})
-          .then(function(){ev(ts?'tem-sinal/video-enviado':'video-enviado');vcInc(key);if(ts)mineAdd({k:key,id:vid,t:'video',termo:termoNome(),ts:Date.now()});st.textContent='Recebemos seu vídeo. Obrigado por contribuir! Ele aparecerá nesta página depois da nossa análise.';fv.value='';var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend();updQuota()})
+          .then(function(){ev(ts?'tem-sinal/video-enviado':'video-enviado');vcInc(key);if(ts)mineAdd({k:key,id:vid,t:'video',termo:termoNome(),ts:Date.now()});st.textContent=AUTO?'Vídeo enviado. Obrigado por contribuir! Ele aparece aqui em instantes. Se não aparecer, atualize a página.':'Vídeo enviado. Obrigado por contribuir! Ele aparece aqui depois da aprovação da equipe.';fv.value='';if(!AUTO){var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend()}updQuota()})
           .catch(function(){st.textContent='Não foi possível enviar o vídeo agora.'});
       };
       rd.readAsDataURL(file);
@@ -793,7 +801,7 @@ function tsItems(){
 function tsTile(t){
   var badge='';
   if(TSOK) badge=tsVal(t)?'<span class="tsb ok" role="img" aria-label="Validado" title="Validado">'+IC.ck+'</span>':'<span class="tsb'+(tsCnt(t)?'':' z')+'" role="img" aria-label="'+tsCnt(t)+' respostas" title="'+tsCnt(t)+' respostas">'+tsCnt(t)+'</span>';
-  return '<a class="tile cov ts" href="#tem-sinal-'+t.id+'">'+cover({img:'',x:'50%',y:'50%',z:1},'ts'+t.id)+((t.yt||t.drive)?'<span class="play">'+PLAY+'</span>':'')+badge+'<span class="name">'+esc(t.nome)+'</span></a>';
+  return '<a class="tile cov ts" href="#tem-sinal-'+t.id+'">'+cover(t.capa,'ts'+t.id)+((t.yt||t.drive)?'<span class="play">'+PLAY+'</span>':'')+badge+'<span class="name">'+esc(t.nome)+'</span></a>';
 }
 function tsPaint(){
   var g=$('#tsgrid');if(!g) return;
@@ -803,16 +811,45 @@ function tsPaint(){
   document.querySelectorAll('.tsch[data-o]').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-o')===tsOrd?'true':'false')});
   var h=$('#tshide');if(h){h.setAttribute('aria-pressed',tsHide?'true':'false');h.textContent=tsHide?'Mostrar validados':'Ocultar validados'}
 }
+function tsSugHtml(){
+  return '<div class="morewrap"><button type="button" class="morebtn" id="tssugbtn" aria-label="Sugerir um termo" title="Sugerir um termo" data-ev="tem-sinal/sugerir-termo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>'+
+    '<p class="note tssugnote">Toque no + para sugerir um termo.</p>'+
+    '<form class="form tssug" id="tssug" hidden novalidate><h2 class="rh2">Sugerir um termo</h2>'+
+    '<div><label for="ssn">Seu nome</label><input type="text" id="ssn" autocomplete="name" maxlength="60"></div>'+
+    '<div><label for="sse">Seu Estado</label><select id="sse">'+ufOptions()+'</select></div>'+
+    '<div><label for="sst">Termo que falta</label><input type="text" id="sst" maxlength="80"></div>'+
+    '<div><label for="ssx">Explicação (opcional)</label><textarea id="ssx" maxlength="600"></textarea></div>'+
+    '<div class="cform-hp" aria-hidden="true"><label>Não preencha<input type="text" id="ssh" tabindex="-1" autocomplete="off"></label></div>'+
+    '<div class="row"><button class="btn small" type="submit">Enviar sugestão</button></div><p class="status" id="sss" role="status"></p></form>';
+}
 function tsViewHtml(){
-  if(!D.ts.length) return head('Tem sinal?')+'<p class="note">Em breve.</p>';
+  if(!D.ts.length) return head('Tem sinal?')+'<p class="note">Em breve.</p>'+(CFG.COMENTARIOS_URL?tsSugHtml():'');
   function ch(k,l){return '<button type="button" class="tsch" data-o="'+k+'" data-ev="tem-sinal/filtro-'+k+'" aria-pressed="false">'+l+'</button>'}
-  return head('Tem sinal?')+'<p class="lead tslead">Termos que ainda não têm sinal estabelecido. Toque em um termo e mostre o sinal que você usa ou sugere.</p>'+
+  return head('Tem sinal?')+'<p class="lead tslead">Toque em um termo e mostre o sinal que você usa ou sugere.</p>'+
     '<div class="tschips">'+ch('az','A–Z')+ch('new','Mais novos')+ch('most','Mais respondidos')+ch('zero','Sem resposta')+
     '<button type="button" class="tsch" id="tshide" data-ev="tem-sinal/filtro-ocultar-validados" aria-pressed="false">Ocultar validados</button>'+
     '<a class="tsch" href="#meus-envios">Meus envios</a></div>'+
-    '<div class="grid compact tsgrid" id="tsgrid"></div><p class="note" id="tsempty" hidden>Nenhum termo aqui.</p>';
+    '<div class="grid compact tsgrid" id="tsgrid"></div><p class="note" id="tsempty" hidden>Nenhum termo aqui.</p>'+(CFG.COMENTARIOS_URL?tsSugHtml():'');
+}
+function tsSugInit(){
+  var fs=$('#tssug'),bt=$('#tssugbtn');if(!fs||!bt) return;
+  bt.addEventListener('click',function(){fs.hidden=!fs.hidden;var nt=$('.tssugnote');if(nt)nt.hidden=!fs.hidden;if(!fs.hidden){fs.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(function(){$('#ssn').focus({preventScroll:true})},400)}});
+  fs.addEventListener('submit',function(e){
+    e.preventDefault();var st=$('#sss');
+    var n=$('#ssn').value.trim(),uf=$('#sse').value,t=$('#sst').value.trim(),x=$('#ssx').value.trim();
+    if(!n){st.textContent='Preencha seu nome.';$('#ssn').focus();return}
+    if(!uf){st.textContent='Escolha o seu Estado.';$('#sse').focus();return}
+    if(!t){st.textContent='Escreva o termo que falta.';$('#sst').focus();return}
+    if($('#ssh').value||Date.now()-pageStart<3000){st.textContent='Tente de novo em instantes.';return}
+    var arr=lsGet('cl_sg',[]).filter(function(z){return Date.now()-z<60000});if(arr.length>=3){st.textContent='Muitos envios seguidos. Aguarde um minuto.';return}arr.push(Date.now());lsSet('cl_sg',arr);
+    var body={nome:n,estado:uf,texto:'Termo sugerido: '+t+(x?'\nExplicação: '+x:''),id:rnd(),chave:rnd(),pagina:'sugestao-termo',site:'',tempo:Date.now()-pageStart,aparelho:devId()};
+    fetch(CFG.COMENTARIOS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(){
+      ev('tem-sinal/termo-sugerido');$('#sst').value='';$('#ssx').value='';st.textContent='Sugestão enviada. Obrigado por ajudar! O termo aparece aqui depois da aprovação da equipe.';
+    }).catch(function(){st.textContent='Não foi possível enviar agora.'});
+  });
 }
 function tsInit(){
+  tsSugInit();
   if(!$('#tsgrid')) return;
   tsPaint();
   document.querySelectorAll('.tsch[data-o]').forEach(function(b){b.addEventListener('click',function(){tsOrd=b.getAttribute('data-o');tsPaint()})});
@@ -822,15 +859,16 @@ function tsInit(){
 function driveFrame(id,title){return '<iframe src="https://drive.google.com/file/d/'+id+'/preview" allow="autoplay" title="'+esc(title)+'" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>'}
 function tsPage(t){
   var key='tem-sinal-'+t.id;
+  var imgs=(t.imgs&&t.imgs.length)?'<div class="tsimgs n'+t.imgs.length+'">'+t.imgs.map(function(u,i){return '<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="Imagem '+(i+1)+' de '+esc(t.nome)+'" loading="lazy"></a>'}).join('')+'</div>':'';
   var vid=t.yt?'<div class="tsvid"><div class="frame live" id="sf">'+poster(t.yt,'Reproduzir '+t.nome)+'</div></div>':(t.drive?'<div class="tsvid"><div class="frame live">'+driveFrame(t.drive,'Explicação: '+t.nome)+'</div></div>':'');
   var link=location.origin+location.pathname+'#tem-sinal-'+t.id;
   var msg='Você conhece o sinal de "'+t.nome+'" em Libras? Ajude o Catlibras a responder: '+link;
   return '<div class="tspage"><h1>'+esc(t.nome)+'</h1><hr class="rule">'+
-    '<div id="tsval"></div>'+vid+(t.exp?'<p class="tsexp">'+esc(t.exp).replace(/\n+/g,'<br>')+'</p>':'')+
+    '<div id="tsval"></div>'+imgs+vid+(t.exp?'<p class="tsexp">'+esc(t.exp).replace(/\n+/g,'<br>')+'</p>':'')+
     '<div class="aviso">Propostas da comunidade, não são sinais oficiais.</div>'+
     '<p class="tsres" id="tsres"></p>'+
     '<div class="tsacts"><a class="btn small" href="#" data-goform="1" data-ev="tem-sinal/responder">Responder</a>'+
-    '<a class="btn small ghost" data-share="'+esc(msg)+'" href="https://wa.me/?text='+encodeURIComponent(msg)+'" target="_blank" rel="noopener">Ajude a responder</a></div>'+
+    waBtn(msg,'Ajude a responder')+'</div>'+
     commentsBlock(key,true)+
     '<div class="tsforum"><p class="note">Quer debater mais? O Fórum no Telegram tem mais espaço para conversar.</p><a class="btn small ghost" href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum">Debater no Fórum (Telegram)</a></div></div>';
 }
@@ -838,7 +876,7 @@ function tsPageInit(t){
   var sf=$('#sf'),ps=sf&&$('.poster',sf);
   if(ps) ps.addEventListener('click',function(){mountSingle(sf,t.yt,t.nome)});
   var go=$('[data-goform]');
-  if(go) go.addEventListener('click',function(e){e.preventDefault();var f=$('#cform');if(f){f.scrollIntoView({behavior:'smooth',block:'start'});var n=$('#cn');if(n)setTimeout(function(){n.focus({preventScroll:true})},400)}});
+  if(go) go.addEventListener('click',function(e){e.preventDefault();var o=$('#copen');if(o&&!o.hidden)o.click();var f=$('#cform');if(f){f.scrollIntoView({behavior:'smooth',block:'start'});var n=$('#cn');if(n)setTimeout(function(){n.focus({preventScroll:true})},400)}});
   cmHook=function(cs){
     var u=0,sg=0,m={},val=null;
     cs.forEach(function(c){
