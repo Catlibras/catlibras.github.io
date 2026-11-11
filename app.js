@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-11b";
+var BUILD="2026-11-11c";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -567,13 +567,14 @@ function initComments(key){
     var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
   var ldb=$('#sendld');
   function busy(on,msg){if(!ldb)return;ldb.hidden=!on;if(on){var t=ldb.querySelector('.lt');if(t)t.textContent=msg;var vh0=$('#cvh');if(vh0)vh0.hidden=true;var sb=form.querySelector('button[type=submit]');if(sb)sb.disabled=true;st.textContent=''}else{var sb2=form.querySelector('button[type=submit]');if(sb2)sb2.disabled=false}}
+  var nidTxt='';
   function refreshList(vid,tries){
     fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){
       var cs=j.comentarios||[],l=$('#clist');if(!l)return;
       if(!cs.some(function(c){return c.id===vid})){if(tries>0)setTimeout(function(){refreshList(vid,tries-1)},2500);return}
       CMLIST=cs;l.innerHTML='';cs.forEach(function(c){addComment(c,false)});if(cmHook)cmHook(cs);
-      var li=l.querySelector('li[data-id="'+vid+'"]'),th=$('#thanks');
-      if(li&&th){var hold=document.createElement('li');hold.className='thxli';th.hidden=false;hold.appendChild(th);li.parentNode.insertBefore(hold,li.nextSibling);
+      var li=l.querySelector('li[data-id="'+vid+'"]'),th=$('#thanks');if(li&&th){}
+      if(li&&th&&vid!==nidTxt){var hold=document.createElement('li');hold.className='thxli';th.hidden=false;hold.appendChild(th);li.parentNode.insertBefore(hold,li.nextSibling);
         li.scrollIntoView({behavior:'smooth',block:'center'})}
     }).catch(function(){if(tries>0)setTimeout(function(){refreshList(vid,tries-1)},2500)});
   }
@@ -610,7 +611,7 @@ function initComments(key){
       busy(false);
       var ow=ownGet();ow[nid]=nk;ownSet(ow);
       if(ts){ev('tem-sinal/resposta-enviada');mineAdd({k:key,id:nid,t:'texto',termo:termoNome(),ts:Date.now()});
-        if(AUTO){var c0={id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora',tipo:tipoVal(),eu:0,euUF:{}};CMLIST.unshift(c0);addComment(c0,true);if(cmHook)cmHook(CMLIST);$('#ct').value='';enviado('Resposta enviada. Obrigado por participar! Ela já aparece aqui.');return}
+        if(AUTO){$('#ct').value='';setTimeout(function(){refreshList(nid,4)},1200);enviado('Enviado. Obrigado por participar! Ele já aparece aqui.');return}
         $('#ct').value='';enviado('Resposta enviada. Obrigado por participar! Ela aparece aqui depois da aprovação da equipe.');return}
       ev('comentario-enviado');addComment({id:nid,nome:n,estado:($('#ce')||{}).value||'',texto:t,data:'agora'},true);$('#ct').value='';enviado('Comentário enviado. Obrigado por participar! Sua contribuição ajuda a comunidade surda católica.');
     }).catch(function(){busy(false);st.textContent='Não foi possível enviar agora.'});
@@ -810,6 +811,18 @@ function recHtml(){
   }).join('');
   return '<section class="section"><div class="section-head"><h2>Recomendamos</h2></div><hr class="rule"><div class="recrow" role="list" aria-label="Canais recomendados">'+items+'</div></section>';
 }
+function recPeek(){
+  var r=document.querySelector('.recrow');if(!r||r.scrollWidth<=r.clientWidth+8) return;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if(!('IntersectionObserver' in window)) return;
+  var io=new IntersectionObserver(function(es){
+    if(!es[0].isIntersecting) return;io.disconnect();
+    var t0=null,max=46,dur=1500;
+    function st(t){if(t0===null)t0=t;var k=Math.min(1,(t-t0)/dur),y=Math.sin(Math.PI*k);r.scrollLeft=max*y;if(k<1)requestAnimationFrame(st);else r.scrollLeft=0}
+    requestAnimationFrame(st);
+  },{threshold:.7});
+  io.observe(r);
+}
 /* Equipe: cartão de integrante (foto opcionalmente leva ao Instagram) */
 var SILH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
 var IGICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg>';
@@ -901,7 +914,7 @@ function tsViewHtml(){
   return head('Tem sinal?')+'<p class="lead tslead">Toque em um termo e mostre o sinal que você usa ou sugere.</p>'+
     '<div class="tschips"><div class="seg" role="radiogroup" aria-label="Ordem">'+ch('az','A–Z','Ordem alfabética')+ch('most','<span class="bb">+</span>','Mais respondidos primeiro')+ch('zero','<span class="bb z">0</span>','Menos respondidos primeiro')+'</div>'+
     '<a class="tsch" href="#meus-envios">Meus envios</a>'+
-    '<button type="button" class="sw" id="tshide" role="switch" aria-checked="true" data-ev="tem-sinal/filtro-validados"><span class="knob"></span><span class="swl">Validados</span></button>'+
+    '<button type="button" class="sw" id="tshide" role="switch" aria-checked="true" aria-label="Validados" title="Validados" data-ev="tem-sinal/filtro-validados"><span class="vk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>'+
     '</div>'+
     '<div class="grid compact tsgrid" id="tsgrid"></div><p class="note" id="tsempty" hidden>Nenhum termo aqui.</p>'+(CFG.COMENTARIOS_URL?tsSugHtml():'');
 }
@@ -945,7 +958,7 @@ function tsPage(t){
     '<div class="tsacts"><a class="btn small" href="#" data-goform="1" data-ev="tem-sinal/responder">Responder</a>'+
     waBtn(msg,'Ajude a responder')+'</div></div><div class="tsrt">'+
     commentsBlock(key,true)+
-    '<div class="tsforum"><p class="note">Quer debater mais? O Fórum no Telegram tem mais espaço para conversar.</p><a class="btn small ghost tgb" href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum" aria-label="Debater no Fórum (Telegram)" title="Debater no Fórum (Telegram)">'+TGICON+'</a></div></div></div>';
+    '<div class="tsforum tsc"><p class="note">Quer debater mais? O Fórum no Telegram tem mais espaço para conversar.</p><a class="btn small ghost tgb" href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum" aria-label="Debater no Fórum (Telegram)" title="Debater no Fórum (Telegram)">'+TGICON+'</a></div></div></div>';
 }
 function tsPageInit(t){
   var sf=$('#sf'),ps=sf&&$('.poster',sf);
@@ -1009,7 +1022,7 @@ var views={
     var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return (i<PAGE?t:t.replace(/^<a /,'<a hidden '))+(i===PAGE-1&&RL.length>PAGE?PLUS:'')}).join('');
     var more='';
-    return '<section class="hero">'+stripHtml()+'</section>'+
+    return ''+
       (spot?'<section class="section spotsec">'+spot+'</section>':'')+
       (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
       (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide" id="temasgrid">'+th+'</div>'+moreTh+'</section>':'')+
@@ -1210,13 +1223,14 @@ function render(){
   }
   app.innerHTML=(home?'':crumbsHtml(cr))+html;
   $('#menu').hidden=home;
+  var hs=$('#hstrip');if(hs){hs.innerHTML=home?stripHtml():'';hs.hidden=!home}
   closeSearch();
   document.body.classList.toggle('watch',h.indexOf('video-')===0);
   document.body.classList.toggle('home',home);
   document.body.classList.toggle('letras',h==='catalogo');
   document.body.classList.toggle('solopage',h.indexOf('sinal-')===0||h.indexOf('catequese-')===0);
   document.querySelectorAll('#menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
-  closeVideo();initSpot();maybeInstBar();
+  closeVideo();initSpot();maybeInstBar();recPeek();
   if(h==='catalogo') fitLetters();
   if(after) after();
   markSeen();
