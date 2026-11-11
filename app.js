@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-11a";
+var BUILD="2026-11-11b";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -526,7 +526,7 @@ function openDrive(t,id){
 }
 function addComment(c,top){
   var li=document.createElement('li'),hd=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
-  hd.className='chd';
+  hd.className='chd';if(c.id)li.setAttribute('data-id',c.id);
   var nm=String(c.nome||'Visitante');if(nm.length>14)nm=nm.slice(0,14)+'…';
   b.textContent=nm+(c.estado?' - '+c.estado:'');b.title=c.nome||'';sp.className='cdt';sp.textContent=(c.data||'')+(c.editado?' · editado':'');p.textContent=c.texto||'';
   if(c.equipe){var eq=document.createElement('img');eq.className='tm';eq.src='favicon.svg';eq.alt='Equipe';eq.title='Equipe';hd.appendChild(eq)}
@@ -566,7 +566,17 @@ function initComments(key){
     if(cmHook)cmHook(cs);
     var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
   var ldb=$('#sendld');
-  function busy(on,msg){if(!ldb)return;ldb.hidden=!on;if(on){var t=ldb.querySelector('.lt');if(t)t.textContent=msg;var sb=form.querySelector('button[type=submit]');if(sb)sb.disabled=true;st.textContent=''}else{var sb2=form.querySelector('button[type=submit]');if(sb2)sb2.disabled=false}}
+  function busy(on,msg){if(!ldb)return;ldb.hidden=!on;if(on){var t=ldb.querySelector('.lt');if(t)t.textContent=msg;var vh0=$('#cvh');if(vh0)vh0.hidden=true;var sb=form.querySelector('button[type=submit]');if(sb)sb.disabled=true;st.textContent=''}else{var sb2=form.querySelector('button[type=submit]');if(sb2)sb2.disabled=false}}
+  function refreshList(vid,tries){
+    fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){
+      var cs=j.comentarios||[],l=$('#clist');if(!l)return;
+      if(!cs.some(function(c){return c.id===vid})){if(tries>0)setTimeout(function(){refreshList(vid,tries-1)},2500);return}
+      CMLIST=cs;l.innerHTML='';cs.forEach(function(c){addComment(c,false)});if(cmHook)cmHook(cs);
+      var li=l.querySelector('li[data-id="'+vid+'"]'),th=$('#thanks');
+      if(li&&th){var hold=document.createElement('li');hold.className='thxli';th.hidden=false;hold.appendChild(th);li.parentNode.insertBefore(hold,li.nextSibling);
+        li.scrollIntoView({behavior:'smooth',block:'center'})}
+    }).catch(function(){if(tries>0)setTimeout(function(){refreshList(vid,tries-1)},2500)});
+  }
   function showPend(){var el=$('#pend');if(el)el.hidden=!pendGet().some(function(x){return x.k===key})}
   showPend();
   function tipoVal(){var r=form.querySelector('input[name=ctp]:checked');return r?r.value:''}
@@ -632,7 +642,7 @@ function initComments(key){
         var n=$('#cn').value.trim();
         var vid=rnd(),vk=rnd(),ow=ownGet();ow[vid]=vk;ownSet(ow);
         post({nome:n,texto:$('#ct').value.trim(),id:vid,chave:vk,arquivo:{nome:file.name,tipo:file.type,dados:String(rd.result).split(',')[1]}})
-          .then(function(){busy(false);ev(ts?'tem-sinal/video-enviado':'video-enviado');vcInc(key);if(ts)mineAdd({k:key,id:vid,t:'video',termo:termoNome(),ts:Date.now()});enviado(AUTO?'Vídeo enviado. Obrigado por contribuir! Ele aparece aqui em instantes. Se não aparecer, atualize a página.':'Vídeo enviado. Obrigado por contribuir! Ele aparece aqui depois da aprovação da equipe.');fv.value='';if(!AUTO){var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend()}updQuota()})
+          .then(function(){busy(false);ev(ts?'tem-sinal/video-enviado':'video-enviado');vcInc(key);if(ts)mineAdd({k:key,id:vid,t:'video',termo:termoNome(),ts:Date.now()});if(AUTO)setTimeout(function(){refreshList(vid,4)},1500);enviado(AUTO?'Vídeo enviado. Obrigado por contribuir! Ele aparece aqui em instantes. Se não aparecer, atualize a página.':'Vídeo enviado. Obrigado por contribuir! Ele aparece aqui depois da aprovação da equipe.');fv.value='';if(!AUTO){var pl=pendGet();pl.push({k:key,n:n,t:Date.now()});pendSet(pl);showPend()}updQuota()})
           .catch(function(){busy(false);fv.value='';st.textContent='Não foi possível enviar o vídeo agora. O comentário não foi publicado. Tente de novo.'});
       };
       rd.readAsDataURL(file);
@@ -890,8 +900,9 @@ function tsViewHtml(){
   function ch(k,l,lab){return '<button type="button" class="segb" role="radio" data-o="'+k+'" data-ev="tem-sinal/filtro-'+k+'" aria-checked="false"'+(lab?' aria-label="'+lab+'" title="'+lab+'"':'')+'>'+l+'</button>'}
   return head('Tem sinal?')+'<p class="lead tslead">Toque em um termo e mostre o sinal que você usa ou sugere.</p>'+
     '<div class="tschips"><div class="seg" role="radiogroup" aria-label="Ordem">'+ch('az','A–Z','Ordem alfabética')+ch('most','<span class="bb">+</span>','Mais respondidos primeiro')+ch('zero','<span class="bb z">0</span>','Menos respondidos primeiro')+'</div>'+
+    '<a class="tsch" href="#meus-envios">Meus envios</a>'+
     '<button type="button" class="sw" id="tshide" role="switch" aria-checked="true" data-ev="tem-sinal/filtro-validados"><span class="knob"></span><span class="swl">Validados</span></button>'+
-    '<a class="tsch" href="#meus-envios">Meus envios</a></div>'+
+    '</div>'+
     '<div class="grid compact tsgrid" id="tsgrid"></div><p class="note" id="tsempty" hidden>Nenhum termo aqui.</p>'+(CFG.COMENTARIOS_URL?tsSugHtml():'');
 }
 function tsSugInit(){
@@ -927,14 +938,14 @@ function tsPage(t){
   var vid=t.yt?'<div class="tsvid"><div class="frame live" id="sf">'+poster(t.yt,'Reproduzir '+t.nome)+'</div></div>':(t.drive?'<div class="tsvid"><div class="frame live">'+driveFrame(t.drive,'Explicação: '+t.nome)+'</div></div>':'');
   var link=location.origin+location.pathname+'#tem-sinal-'+t.id;
   var msg='Você conhece o sinal de "'+t.nome+'" em Libras? Ajude o Catlibras a responder: '+link;
-  return '<div class="tspage"><h1>'+esc(t.nome)+'</h1><hr class="rule">'+
+  return '<div class="tspage"><h1>'+esc(t.nome)+'</h1><hr class="rule"><div class="tscols"><div class="tsl">'+
     '<div id="tsval"></div>'+imgs+vid+(t.exp?'<p class="tsexp">'+esc(t.exp).replace(/\n+/g,'<br>')+'</p>':'')+
     '<div class="aviso">Propostas da comunidade, não são sinais oficiais.</div>'+
     '<div class="tsres" id="tsres"><div class="tsq uso"><b>0</b><span>Uso</span></div><div class="tsq sug"><b>0</b><span>Sugestão</span></div></div>'+
     '<div class="tsacts"><a class="btn small" href="#" data-goform="1" data-ev="tem-sinal/responder">Responder</a>'+
-    waBtn(msg,'Ajude a responder')+'</div>'+
+    waBtn(msg,'Ajude a responder')+'</div></div><div class="tsrt">'+
     commentsBlock(key,true)+
-    '<div class="tsforum"><p class="note">Quer debater mais? O Fórum no Telegram tem mais espaço para conversar.</p><a class="btn small ghost tgb" href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum" aria-label="Debater no Fórum (Telegram)" title="Debater no Fórum (Telegram)">'+TGICON+'</a></div></div>';
+    '<div class="tsforum"><p class="note">Quer debater mais? O Fórum no Telegram tem mais espaço para conversar.</p><a class="btn small ghost tgb" href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum" aria-label="Debater no Fórum (Telegram)" title="Debater no Fórum (Telegram)">'+TGICON+'</a></div></div></div>';
 }
 function tsPageInit(t){
   var sf=$('#sf'),ps=sf&&$('.poster',sf);
@@ -1512,7 +1523,7 @@ function showUpdate(){
 /* ---------- início ---------- */
 var foot=$('.foot-in a.btn');if(foot&&CFG.CANAL_URL) foot.href=CFG.CANAL_URL;
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){})}
-app.innerHTML=loaderHtml('Carregando','ldpage');
+app.innerHTML=loaderHtml('','ldpage');
 document.body.classList.add('home');$('#menu').hidden=true;
 startIntro();
 loadData().then(function(r){
@@ -1530,5 +1541,6 @@ loadData().then(function(r){
   app.innerHTML='<div class="offline">'+loaderHtml('','calm')+'<p>Sem conexão com a internet. Verifique a conexão e tente de novo.</p><button type="button" class="btn" id="retry">Tentar de novo</button></div>';
   $('#retry').addEventListener('click',function(){location.reload()});
 });
+(function(){var on=false;function f(){var v=(window.scrollY||0)>90;if(v!==on){on=v;document.body.classList.toggle('scr',v)}}window.addEventListener('scroll',f,{passive:true});f()})();
 window.__catlibras={D:D};
 })();

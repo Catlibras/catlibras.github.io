@@ -112,7 +112,7 @@ nav.menu a[aria-current="page"]{color:var(--gold-soft);border-bottom-color:var(-
 .results p{color:var(--muted)}
 
 /* Títulos */
-main{padding-block:32px 72px}
+main{padding-block:13px 72px}
 .eyebrow{font-family:var(--font-label);font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-soft);margin:0 0 10px}
 h1{font-weight:800;font-size:clamp(30px,5.6vw,52px);line-height:1.05;margin:0 0 16px;letter-spacing:-.01em;text-wrap:balance}
 h2{font-weight:700;font-size:clamp(21px,3vw,28px);line-height:1.15;margin:0 0 6px;text-wrap:balance}
@@ -785,13 +785,45 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
 .sw[aria-checked="true"] .knob{background:#1f9d55;border-color:#1f9d55}
 .sw[aria-checked="true"] .knob::after{transform:translateX(16px);background:#fff}
 @media (prefers-reduced-motion:reduce){.ld .mark img,.ld .ring,.lab i,.seal,.seal svg,.eu.pop,.eu.on.cu svg{animation:none!important}.ld .ring{opacity:0}}
+
+/* 2026-11-11b: ajustes de espaço, mosaico e desktop */
+.top .brand .bsym{display:none;height:34px;width:auto}
+.lab{font-weight:400;font-size:13px;letter-spacing:0;color:var(--muted)}
+.ld.ldpage .mark{margin-top:0}
+.thxli{list-style:none;margin:0 0 10px;padding:0}
+.thxli .thanks{margin:0}
+.tschips .sw{flex:1 0 100%;justify-content:flex-end}
+.tscols{display:block}
+@media (min-width:1000px) and (min-aspect-ratio:1/1){
+  .wrap{max-width:1360px}
+  .tscols{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:start}
+  .tsrt .comments{border-top:0;padding-top:0}
+  .tsrt .clist,.sp:has(.comments) .clist{grid-template-columns:minmax(0,1fr)}
+  .grid.compact.tsgrid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+  .tsrt .section{margin-top:0}
+  .tsvid,.tsexp,.aviso,.tsres,.tsvals{max-width:none}
+  .sp:has(.comments){display:grid;grid-template-columns:minmax(0,1fr) 400px;column-gap:44px;align-items:start}
+  .sp:has(.comments) .solo{order:0;grid-column:1;grid-row:1;max-width:min(100%,calc((100dvh - 120px) * 16 / 9))}
+  .sp:has(.comments) .varsec{grid-column:1}
+  .sp:has(.comments) > section.section:not(.varsec){grid-column:2;grid-row:1 / span 3;margin-top:0}
+  .sp:has(.comments) .comments{border-top:0;padding-top:0}
+  .sp:has(.comments) .vctl,.sp:has(.comments) .pn{max-width:none}
+}
+@media (min-width:1000px) and (min-aspect-ratio:1/1) and (min-height:621px){
+  .top{position:sticky;top:0;z-index:30}
+  body.scr .top .brand img:not(.bsym){display:none}
+  body.scr .top .brand .bsym{display:block}
+  body.scr .top .brand .logo-l,body.scr .top .brand .logo-d{display:none!important}
+  body.scr .top .wrap.hrow{padding-block:4px}
+  body.scr .top .menu{justify-content:flex-start}
+}
 </style>
 </head>
 <body>
 <header class="top" id="top">
   <div class="hbg" aria-hidden="true"><i class="hfill"></i><svg class="hline" viewBox="0 0 100 14" preserveAspectRatio="none"><defs><linearGradient id="hlg" x1="0" x2="1" y1="0" y2="0"><stop offset="0" style="stop-color:var(--gold);stop-opacity:0"/><stop offset=".14" style="stop-color:var(--gold);stop-opacity:.75"/><stop offset=".86" style="stop-color:var(--gold);stop-opacity:.75"/><stop offset="1" style="stop-color:var(--gold);stop-opacity:0"/></linearGradient></defs><path d="M0 0 L0.00 0.00 L2.08 0.09 L4.17 0.34 L6.25 0.74 L8.33 1.26 L10.42 1.90 L12.50 2.64 L14.58 3.46 L16.67 4.34 L18.75 5.27 L20.83 6.22 L22.92 7.19 L25.00 8.16 L27.08 9.11 L29.17 10.02 L31.25 10.88 L33.33 11.66 L35.42 12.37 L37.50 12.96 L39.58 13.44 L41.67 13.78 L43.75 13.97 L45.83 13.99 L47.92 13.89 L50.00 13.67 L52.08 13.36 L54.17 12.96 L56.25 12.48 L58.33 11.93 L60.42 11.32 L62.50 10.65 L64.58 9.94 L66.67 9.19 L68.75 8.42 L70.83 7.64 L72.92 6.84 L75.00 6.05 L77.08 5.27 L79.17 4.50 L81.25 3.77 L83.33 3.08 L85.42 2.43 L87.50 1.84 L89.58 1.32 L91.67 0.87 L93.75 0.50 L95.83 0.23 L97.92 0.06 L100.00 0.00"/></svg></div>
   <div class="wrap hrow">
-    <a class="brand" href="#inicio" aria-label="Catlibras, Sinais católicos, página inicial"><img class="logo-l" src="logo-claro.svg" alt="Catlibras, Sinais católicos"><img class="logo-d" src="logo.svg" alt="" aria-hidden="true"></a>
+    <a class="brand" href="#inicio" aria-label="Catlibras, Sinais católicos, página inicial"><img class="logo-l" src="logo-claro.svg" alt="Catlibras, Sinais católicos"><img class="logo-d" src="logo.svg" alt="" aria-hidden="true"><img class="bsym" src="favicon.svg" alt="" aria-hidden="true"></a>
     <div class="search sfield" id="sfield"><div class="sbox"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4 4"/></svg><input id="qh" type="search" placeholder="Buscar sinal" autocomplete="off" aria-label="Buscar sinal"></div><div id="resultsh" class="results" hidden></div></div>
     <nav class="menu" id="menu" aria-label="Principal"><a class="ib mi" href="#catalogo" data-nav="catalogo" aria-label="Catálogo" title="Catálogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></a><a class="ib mi" href="#catequeses" data-nav="catequeses" aria-label="Catequeses" title="Catequeses"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.6c1.4 1.7 1.9 2.7 1.9 3.5a1.9 1.9 0 0 1-3.8 0c0-.8.5-1.8 1.9-3.5z"/><path d="M10.2 9.4h3.6v7.2h-3.6z"/><path d="M4.6 16.6h15.2l-2.3 3.8H8.4a3.8 3.8 0 0 1-3.8-3.8z"/></svg></a><a class="ib mi" href="#oracao-eucaristica" data-nav="oracao" aria-label="Oração Eucarística" title="Oração Eucarística"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8a3.5 3.5 0 0 1 7 0"/><path d="M6.5 8h11v1.5a5.5 5.5 0 0 1-11 0z"/><path d="M12 15v4.5"/><path d="M8 20.5h8"/></svg></a><a class="ib mi" href="#tem-sinal" data-nav="temsinal" aria-label="Tem sinal?" title="Tem sinal?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4.5 4v-4H6a2 2 0 0 1-2-2z"/><path d="M9.7 8.6a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.8-1.1 1.5"/><path d="M12 14.2h.01"/></svg></a></nav>
     <div class="rb">
