@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-11c";
+var BUILD="2026-11-11d";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -526,7 +526,7 @@ function openDrive(t,id){
 }
 function addComment(c,top){
   var li=document.createElement('li'),hd=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
-  hd.className='chd';if(c.id)li.setAttribute('data-id',c.id);
+  hd.className='chd';if(c.id)li.setAttribute('data-id',c.id);if(c.equipe)li.classList.add('eq');
   var nm=String(c.nome||'Visitante');if(nm.length>14)nm=nm.slice(0,14)+'…';
   b.textContent=nm+(c.estado?' - '+c.estado:'');b.title=c.nome||'';sp.className='cdt';sp.textContent=(c.data||'')+(c.editado?' · editado':'');p.textContent=c.texto||'';
   if(c.equipe){var eq=document.createElement('img');eq.className='tm';eq.src='favicon.svg';eq.alt='Equipe';eq.title='Equipe';hd.appendChild(eq)}
@@ -914,7 +914,7 @@ function tsViewHtml(){
   return head('Tem sinal?')+'<p class="lead tslead">Toque em um termo e mostre o sinal que você usa ou sugere.</p>'+
     '<div class="tschips"><div class="seg" role="radiogroup" aria-label="Ordem">'+ch('az','A–Z','Ordem alfabética')+ch('most','<span class="bb">+</span>','Mais respondidos primeiro')+ch('zero','<span class="bb z">0</span>','Menos respondidos primeiro')+'</div>'+
     '<a class="tsch" href="#meus-envios">Meus envios</a>'+
-    '<button type="button" class="sw" id="tshide" role="switch" aria-checked="true" aria-label="Validados" title="Validados" data-ev="tem-sinal/filtro-validados"><span class="vk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></button>'+
+    '<button type="button" class="sw" id="tshide" role="switch" aria-checked="true" aria-label="Validados" title="Validados" data-ev="tem-sinal/filtro-validados"><span class="knob"><span class="kd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span></button>'+
     '</div>'+
     '<div class="grid compact tsgrid" id="tsgrid"></div><p class="note" id="tsempty" hidden>Nenhum termo aqui.</p>'+(CFG.COMENTARIOS_URL?tsSugHtml():'');
 }
@@ -982,7 +982,7 @@ function tsPageInit(t){
       var CK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
       vb.innerHTML='<section class="tsvals"><h2 class="vh">'+(vals.length>1?'Sinais validados':'Sinal validado')+'</h2><div class="vrow2">'+vals.map(function(c,i){
         var m=String(c.video||'').match(/[-\w]{20,}/);
-        return '<div class="vcard"><span class="seal">'+CK+'</span>'+(m?'<button type="button" class="vplay" data-i="'+i+'" aria-label="Ver sinal validado de '+esc(c.nome||'')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>':'')+'<b>'+esc(String(c.nome||'').slice(0,14)+(String(c.nome||'').length>14?'…':''))+'</b><small>'+esc(c.estado||'')+'</small>'+(c.texto?'<p>'+esc(c.texto)+'</p>':'')+'</div>';
+        return '<div class="vcard"><span class="seal">'+CK+'</span>'+(m?'<button type="button" class="vplay" data-i="'+i+'" aria-label="Ver sinal validado de '+esc(c.nome||'')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>':'')+'<b>'+esc(String(c.nome||'').slice(0,14)+(String(c.nome||'').length>14?'…':'')+(c.estado?' - '+c.estado:''))+'</b>'+(c.texto?'<p>'+esc(c.texto)+'</p>':'')+'</div>';
       }).join('')+'</div></section>';
       vb.querySelectorAll('.vplay').forEach(function(bt){bt.addEventListener('click',function(){var c=vals[+bt.getAttribute('data-i')],m=String(c.video||'').match(/[-\w]{20,}/);if(m)openDrive('Sinal validado: '+t.nome,m[0])})});
     }
