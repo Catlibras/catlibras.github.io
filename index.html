@@ -701,8 +701,9 @@ select option:disabled,select option[value=""]{color:#5b6475}
 body.flip .strip .ci i{position:relative;z-index:40}
 body.flip #app>*{animation:none}
 /* triângulo de ordem: laranja = vídeo começado, verde = visto até o fim (mais de 90%) */
-.ord.part{background:#e8890c;color:#1a1405}
-.ord.seen{background:#2a9d5c;color:#fff}
+.pbar{position:absolute;left:0;bottom:0;height:4px;z-index:4;border-radius:0 3px 3px 0}
+.pbar.part{background:#e8890c}
+.pbar.seen{background:#2a9d5c}
 /* letra maior no rodapé */
 .ctl{display:inline-flex;align-items:center;gap:6px;padding:3px;border:1px solid var(--line);border-radius:999px}
 .ctl .tg{width:30px;height:30px;border-color:transparent}
@@ -888,7 +889,7 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
 .eubar .eu{border:1px solid var(--line);border-radius:999px;padding:5px 12px}
 .eubar .eu.on{border-color:var(--gold)}
 .cact{margin-top:4px}
-.ctabs{position:sticky;top:calc(var(--hh,0px) + env(safe-area-inset-top,0px));z-index:10;display:flex;gap:8px;background:var(--bg);padding:8px 0;margin:0 0 10px;scroll-margin-top:calc(var(--hh,0px) + env(safe-area-inset-top,0px))}
+.ctabs{position:sticky;top:calc(var(--hh,0px) + env(safe-area-inset-top,0px));z-index:10;display:flex;gap:8px;background:transparent;padding:8px 0;margin:0 0 10px;scroll-margin-top:calc(var(--hh,0px) + env(safe-area-inset-top,0px))}
 .ctab{--c:var(--uso);flex:1;font:inherit;font-weight:800;font-size:14px;padding:10px 12px;border-radius:999px;border:1.5px solid var(--c);background:transparent;color:var(--c);cursor:pointer}
 .ctab.tsug{--c:var(--gold)}
 .ctab small{font-size:12px;font-weight:700;opacity:.85}
@@ -901,6 +902,12 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
 .zmore{font:inherit;font-weight:700;color:var(--c);background:none;border:1.5px dashed var(--c);border-radius:999px;padding:9px;cursor:pointer}
 .zempty{margin:0;color:var(--muted);font-size:14px;text-align:center;padding:6px}
 @media (prefers-reduced-motion:reduce){.vseal i{animation:none}}
+.ctabs.stuck{background:var(--bg)}
+.vcard{display:flex;align-items:center;gap:12px;flex:0 0 min(88%,330px);text-align:left;padding:10px}
+.vinfo{flex:1;min-width:0;display:grid;gap:4px;justify-items:start}
+.vcard .seal{position:static;flex:none}
+.vcard .vsqw{flex:none}
+@media (min-width:1000px) and (min-aspect-ratio:1/1){.vsqw{width:124px;height:124px}.vcard{flex-basis:min(100%,380px)}}
 </style>
 </head>
 <body>

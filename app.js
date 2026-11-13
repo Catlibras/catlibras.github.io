@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-12b";
+var BUILD="2026-11-13a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -276,8 +276,10 @@ function markSeen(){
   var o=lsGet('cl_prog',{});
   document.querySelectorAll('.ord').forEach(function(e){
     var a=e.closest('a');if(!a) return;
-    var p=o[(a.getAttribute('href')||'').slice(1)]||0;
-    e.classList.toggle('seen',p>=0.9);e.classList.toggle('part',p>=0.03&&p<0.9);
+    var p=o[(a.getAttribute('href')||'').slice(1)]||0,t=e.parentNode,b=t.querySelector(':scope > .pbar');
+    if(p<0.03){if(b)b.remove();return}
+    if(!b){b=document.createElement('span');b.setAttribute('aria-hidden','true');t.appendChild(b)}
+    b.className='pbar '+(p>=0.9?'seen':'part');b.style.width=(p>=0.9?100:Math.round(p*100))+'%';
   });
 }
 function stopSingle(){clearInterval(progT);progT=null;if(single&&single.p){try{single.p.destroy()}catch(e){}}single=null}
@@ -553,6 +555,7 @@ function setHH(){
   var t=$('#top'),h=0;
   if(t&&getComputedStyle(t).position==='sticky')h=Math.round(t.getBoundingClientRect().height);
   document.documentElement.style.setProperty('--hh',h+'px');
+  var ct=$('#ctabs');if(ct)ct.classList.toggle('stuck',ct.getBoundingClientRect().top<=(parseFloat(getComputedStyle(ct).top)||0)+1);
 }
 addEventListener('scroll',setHH,{passive:true});addEventListener('resize',setHH);
 function clearLists(){document.querySelectorAll('.comments .clist').forEach(function(l){l.innerHTML=''})}
@@ -1017,7 +1020,6 @@ function tsPage(t){
   return '<div class="tspage"><h1>'+esc(t.nome)+'</h1><hr class="rule"><div class="tscols"><div class="tsl">'+
     '<div id="tsval"></div>'+imgs+vid+(t.exp?'<p class="tsexp">'+esc(t.exp).replace(/\n+/g,'<br>')+'</p>':'')+
     '<div class="aviso">Propostas da comunidade, não são sinais oficiais.</div>'+
-    '<div class="tsres" id="tsres"><div class="tsq uso"><b>0</b><span>Uso</span></div><div class="tsq sug"><b>0</b><span>Sugestão</span></div></div>'+
     '<div class="tsacts"><a class="btn small" href="#" data-goform="1" data-ev="tem-sinal/responder">Responder</a>'+
     waBtn(msg,'Ajude a responder')+'</div></div><div class="tsrt">'+
     commentsBlock(key,true)+
@@ -1034,8 +1036,6 @@ function tsPageInit(t){
       if(c.tipo==='uso')u++;else if(c.tipo==='sugestao')sg++;
       if(c.validada)vals.push(c);
     });
-    var qs=document.querySelectorAll('#tsres .tsq b');
-    if(qs.length>1){qs[0].textContent=u;qs[1].textContent=sg}
     var vb=$('#tsval');
     if(vb){
       var sig=vals.map(function(c){return c.id}).join(',');
@@ -1043,11 +1043,14 @@ function tsPageInit(t){
       vb.setAttribute('data-sig',sig);
       if(!vals.length){vb.innerHTML='';return}
       var CK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-      vb.innerHTML='<section class="tsvals"><h2 class="vh">'+(vals.length>1?'Sinais validados':'Sinal validado')+'</h2><div class="vrow2">'+vals.map(function(c,i){
-        var m=String(c.video||'').match(/[-\w]{20,}/);
-        return '<div class="vcard"><span class="seal">'+CK+'</span>'+(m?'<button type="button" class="vplay" data-i="'+i+'" aria-label="Ver sinal validado de '+esc(c.nome||'')+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>':'')+'<b>'+esc(String(c.nome||'').slice(0,14)+(String(c.nome||'').length>14?'…':'')+(c.estado?' - '+c.estado:''))+'</b>'+(c.texto?'<p>'+esc(c.texto)+'</p>':'')+'</div>';
-      }).join('')+'</div></section>';
-      vb.querySelectorAll('.vplay').forEach(function(bt){bt.addEventListener('click',function(){var c=vals[+bt.getAttribute('data-i')],m=String(c.video||'').match(/[-\w]{20,}/);if(m)openDrive('Sinal validado: '+t.nome,m[0])})});
+      vb.innerHTML='<section class="tsvals"><h2 class="vh">'+(vals.length>1?'Sinais validados':'Sinal validado')+'</h2><div class="vrow2"></div></section>';
+      var vr=vb.querySelector('.vrow2');
+      vals.forEach(function(c){
+        var m=String(c.video||'').match(/[-\w]{20,}/),nm=String(c.nome||''),card=document.createElement('div'),inf=document.createElement('div');
+        card.className='vcard';inf.className='vinfo';
+        inf.innerHTML='<span class="seal">'+CK+'</span><b>'+esc(nm.slice(0,14)+(nm.length>14?'…':'')+(c.estado?' - '+c.estado:''))+'</b>'+(c.texto?'<p>'+esc(c.texto)+'</p>':'');
+        card.appendChild(inf);if(m)card.appendChild(vsqEl(c,m[0]));vr.appendChild(card);
+      });
     }
   };
   ev('tem-sinal/termo/'+t.id,true);
