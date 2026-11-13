@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-11d";
+var BUILD="2026-11-12b";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -425,7 +425,7 @@ function cmActions(li,c){
     no.addEventListener('click',close);
     ok.addEventListener('click',function(){
       var t=ta.value.trim();if(!t){ta.focus();return}
-      cmSend({acao:'editar',id:c.id,chave:k,texto:t}).then(function(){p.textContent=t;var sp=li.querySelector('span');if(sp&&!/editado/.test(sp.textContent))sp.textContent+=' · editado';close()}).catch(function(){alert('Não foi possível salvar agora.')});
+      cmSend({acao:'editar',id:c.id,chave:k,texto:t}).then(function(){p.textContent=t;var sp=li.querySelector('.cdt');if(sp&&!/editado/.test(sp.textContent))sp.textContent+=' · editado';close()}).catch(function(){alert('Não foi possível salvar agora.')});
     });
   });
 }
@@ -438,16 +438,17 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function devId(){try{var d=localStorage.getItem('cl_dev');if(!/^[a-f0-9]{32}$/.test(d||'')){d=rnd();localStorage.setItem('cl_dev',d)}return d}catch(e){return ''}}
 function vquota(key){var l=vlim(key);return l?Math.max(0,l-(lsGet('cl_vc',{})[key]||0)):99}
 function vcInc(key){var o=lsGet('cl_vc',{});o[key]=(o[key]||0)+1;lsSet('cl_vc',o)}
-function limitMsg(key){var l=vlim(key);return 'Cada celular pode enviar até '+l+(l===1?' vídeo':' vídeos')+(isTs(key)?' neste termo':' neste sinal')+'. Para debater mais, use o <a href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum">Fórum Catlibras no Telegram</a>.'}
+function limitMsg(key){var l=vlim(key);return 'Você já enviou '+(l===1?'1 vídeo':l+' vídeos')+(isTs(key)?' neste termo':' neste sinal')+': é o limite por celular. Para debater mais, use o <a href="'+esc(tgUrl())+'" target="_blank" rel="noopener" data-ev="tem-sinal/forum">Fórum Catlibras no Telegram</a>.'}
 function mineGet(){return lsGet('cl_mine',[])}
 function mineAdd(x){var a=mineGet();a.unshift(x);lsSet('cl_mine',a.slice(0,50))}
 function mineDel(id){lsSet('cl_mine',mineGet().filter(function(x){return x.id!==id}))}
 function ufGet(){try{return localStorage.getItem('cl_uf')||''}catch(e){return ''}}
 var CMLIST=[],cmHook=null,AUTO=false,cOpen=null;
+var CAMICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/><circle cx="7" cy="10.2" r="1" fill="currentColor" stroke="none"/></svg>';
+var OFFBTN='<button type="button" class="btn small ghost filebtn off" id="cvoff" aria-describedby="cvlim">'+CAMICON+'Enviar vídeo</button>';
 function loaderHtml(msg,cls){return '<div class="ld'+(cls?' '+cls:'')+'" role="status"><div class="mark"><span class="ring"></span><span class="ring b"></span><img src="favicon.svg" alt=""></div>'+(msg?'<div class="lab"><span class="lt">'+msg+'</span><i>.</i><i>.</i><i>.</i></div>':'')+'</div>'}
 function popIt(e){e.classList.remove('pop');void e.offsetWidth;e.classList.add('pop')}
 var THUMB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>';
-var CAMICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/><circle cx="7" cy="10.2" r="1" fill="currentColor" stroke="none"/></svg>';
 function ufOptions(){return '<option value="">Escolha o Estado</option>'+UFS.map(function(u){return '<option value="'+u[0]+'">'+u[1]+'</option>'}).join('')+'<option value="Outro país">Outro país</option>'}
 function euBar(li,c){
   if(!c.id) return;
@@ -499,7 +500,7 @@ function euBar(li,c){
 function commentsBlock(key,withVideo){
   if(!CFG.COMENTARIOS_URL) return '';
   var ts=isTs(key),q=vquota(key);
-  var vbtns=withVideo?(q>0?'<label class="btn small ghost filebtn">'+CAMICON+'Enviar vídeo<input type="file" id="cv" accept="video/*" capture="user"'+(ts?' data-ev="tem-sinal/enviar-video"':'')+'></label>':''):'';
+  var vbtns=withVideo?(q>0?'<label class="btn small ghost filebtn">'+CAMICON+'Enviar vídeo<input type="file" id="cv" accept="video/*" capture="user"'+(ts?' data-ev="tem-sinal/enviar-video"':'')+'></label>':OFFBTN):'';
   var form='<button type="button" class="btn small" id="copen"'+(ts?' hidden':'')+'>'+(ts?'Escrever resposta':'Escrever comentário')+'</button>'+
     '<div class="thanks" id="thanks" role="status" hidden></div>'+
     (ts?'<h2 class="rh2 resp2" id="cfh" hidden>Sua resposta</h2>':'')+
@@ -511,12 +512,14 @@ function commentsBlock(key,withVideo){
     '<div class="cform-hp" aria-hidden="true"><label>Não preencha<input type="text" id="chp" tabindex="-1" autocomplete="off"></label></div>'+
     '<div class="row"><button class="btn small" type="submit">Publicar</button>'+
     (withVideo?'<span class="vrow" id="cvrow">'+vbtns+'</span>':'')+'</div>'+
-    (withVideo?'<p class="note vlim" id="cvlim"'+(q>0?' hidden':'')+'>'+(q>0?'':limitMsg(key))+'</p>':'')+
+    (withVideo?'<p class="note vlim" id="cvlim" hidden></p>':'')+
     (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB. Ele aparece no site depois da aprovação da equipe.</p>':'')+
     '<div id="sendld" hidden>'+loaderHtml('Enviando')+'</div>'+(ts?'<p class="note" id="cnote">Sua resposta aparece depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
     '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>';
-  var list='<ul class="clist" id="clist"></ul>';
+  function zb(k,t){return '<section class="zbox z'+k+'" id="zone-'+k+'" data-k="'+k+'"'+(k==='sug'?' hidden':'')+'><div class="zh"><b>'+t+'</b><span class="zc">0 respostas</span></div><ul class="clist" id="clist-'+k+'"></ul><p class="zempty">Nenhuma resposta ainda. Seja o primeiro!</p><button type="button" class="zmore" hidden>Ver todos</button></section>'}
+  function tb(k,t){return '<button type="button" role="tab" class="ctab t'+k+'" data-k="'+k+'" aria-selected="'+(k==='uso'?'true':'false')+'">'+t+' <small>0</small></button>'}
+  var list=ts?'<div class="ctabs" id="ctabs" role="tablist" aria-label="Tipo de resposta">'+tb('uso','Uso')+tb('sug','Sugestão')+'</div>'+zb('uso','Uso')+zb('sug','Sugestão'):'<ul class="clist" id="clist"></ul>';
   if(ts) return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Respostas</h2>'+list+form+'</section></section>';
   return '<section class="section"><section class="comments" aria-labelledby="ch"><h2 id="ch">Comentários</h2>'+form+list+'</section></section>';
 }
@@ -524,30 +527,86 @@ function openDrive(t,id){
   $('#vt').textContent=t;$('#vo').hidden=false;
   $('#vslot').innerHTML=driveFrame(id,t);
 }
+var TSTAB='uso',TSX={};
+function tsTab(k,scroll){
+  TSTAB=k;
+  document.querySelectorAll('.ctab').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-k')===k?'true':'false')});
+  document.querySelectorAll('.comments .zbox').forEach(function(z){z.hidden=z.getAttribute('data-k')!==k});
+  var t=$('#ctabs');
+  if(scroll&&t){var hh=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hh'))||0;if(t.getBoundingClientRect().top<=hh+4)t.scrollIntoView({behavior:'smooth',block:'start'})}
+}
+function tsZ(){
+  if(!$('#ctabs'))return;
+  var own=ownGet();
+  ['uso','sug'].forEach(function(k){
+    var l=$('#clist-'+k),z=$('#zone-'+k);if(!l||!z)return;
+    var lis=[].slice.call(l.children).filter(function(li){return li.hasAttribute('data-id')}),shown=0;
+    lis.forEach(function(li){var keep=TSX[k]||own[li.getAttribute('data-id')]||shown<2;li.hidden=!keep;if(keep)shown++});
+    var mb=z.querySelector('.zmore');mb.hidden=!!TSX[k]||shown>=lis.length;mb.textContent='Ver todos ('+lis.length+')';
+    z.querySelector('.zc').textContent=lis.length+(lis.length===1?' resposta':' respostas');
+    z.querySelector('.zempty').hidden=!!lis.length;
+    var tb=document.querySelector('.ctab[data-k="'+k+'"] small');if(tb)tb.textContent=lis.length;
+  });
+}
+function setHH(){
+  if(!$('#ctabs'))return;
+  var t=$('#top'),h=0;
+  if(t&&getComputedStyle(t).position==='sticky')h=Math.round(t.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--hh',h+'px');
+}
+addEventListener('scroll',setHH,{passive:true});addEventListener('resize',setHH);
+function clearLists(){document.querySelectorAll('.comments .clist').forEach(function(l){l.innerHTML=''})}
+function listFor(c){return isTs(CMKEY)?$('#clist-'+(c.tipo==='uso'?'uso':'sug')):$('#clist')}
+var VSVG_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+var VSVG_EX='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
+function vStop(w){var f=w.querySelector('.vif');if(f)f.remove();w.classList.remove('pl')}
+function vsqEl(c,m){
+  var w=document.createElement('div');w.className='vsqw';
+  var nm=c.nome||'Visitante';
+  var b=document.createElement('button');b.type='button';b.className='vsq';b.setAttribute('aria-label','Tocar vídeo de '+nm);
+  b.innerHTML='<img class="vth" alt="" src="https://drive.google.com/thumbnail?id='+m+'&sz=w300" onerror="this.remove()" onload="this.parentNode.parentNode.classList.add(\'hasth\')"><img class="vlg" alt="" src="favicon.svg"><span class="vpb">'+VSVG_PLAY+'</span>';
+  var x=document.createElement('button');x.type='button';x.className='vex';x.setAttribute('aria-label','Abrir vídeo de '+nm+' em tela maior');x.innerHTML=VSVG_EX;
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.vsqw.pl').forEach(vStop);
+    var f=document.createElement('iframe');f.className='vif';f.src='https://drive.google.com/file/d/'+m+'/preview';f.allow='autoplay;fullscreen';f.title='Vídeo de '+nm;
+    w.classList.add('pl');w.insertBefore(f,x);ev('video-miniatura');
+  });
+  x.addEventListener('click',function(){vStop(w);openDrive('Vídeo de '+nm,m)});
+  w.appendChild(b);w.appendChild(x);
+  return w;
+}
+function sealEl(){var s=document.createElement('span');s.className='vseal';s.innerHTML='<i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Validado';return s}
 function addComment(c,top){
-  var li=document.createElement('li'),hd=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span'),p=document.createElement('p');
-  hd.className='chd';if(c.id)li.setAttribute('data-id',c.id);if(c.equipe)li.classList.add('eq');
+  var li=document.createElement('li'),row=document.createElement('div'),main=document.createElement('div'),hd=document.createElement('div'),b=document.createElement('b'),p=document.createElement('p');
+  if(c.id)li.setAttribute('data-id',c.id);
+  if(c.equipe)li.classList.add('eq');
+  if(c.tipo==='uso')li.classList.add('tu');else if(c.tipo==='sugestao')li.classList.add('tsg');
+  row.className='crow';main.className='cmain';hd.className='chd';
   var nm=String(c.nome||'Visitante');if(nm.length>14)nm=nm.slice(0,14)+'…';
-  b.textContent=nm+(c.estado?' - '+c.estado:'');b.title=c.nome||'';sp.className='cdt';sp.textContent=(c.data||'')+(c.editado?' · editado':'');p.textContent=c.texto||'';
-  if(c.equipe){var eq=document.createElement('img');eq.className='tm';eq.src='favicon.svg';eq.alt='Equipe';eq.title='Equipe';hd.appendChild(eq)}
-  hd.appendChild(b);
-  if(c.tipo==='sugestao'||c.tipo==='uso'){var tg=document.createElement('em');tg.className='ctag '+(c.tipo==='uso'?'u':'s');tg.textContent=c.tipo==='uso'?'Uso':'Sugestão';hd.appendChild(tg)}
-  if(c.validada){var vd=document.createElement('em');vd.className='ctag v';vd.textContent='Validado';hd.appendChild(vd)}
-  hd.appendChild(sp);li.appendChild(hd);
-  if(c.texto)li.appendChild(p);
-  var pb=null;
-  if(c.video){var m=String(c.video).match(/[-\w]{20,}/);if(m){pb=document.createElement('button');pb.type='button';pb.className='vplay';pb.setAttribute('aria-label','Ver vídeo de '+(c.nome||'Visitante'));pb.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';pb.addEventListener('click',function(){openDrive('Vídeo de '+(c.nome||'Visitante'),m[0])})}}
+  b.textContent=nm+(c.estado?' - '+c.estado:'');b.title=c.nome||'';
+  hd.appendChild(b);main.appendChild(hd);
+  var sb=document.createElement('div');sb.className='csub';
+  if(c.equipe){var eq=document.createElement('img');eq.className='tm';eq.src='favicon.svg';eq.alt='Equipe';eq.title='Equipe';sb.appendChild(eq)}
+  var sp=document.createElement('span');sp.className='cdt';sp.textContent=(c.data||'')+(c.editado?' · editado':'');sb.appendChild(sp);
+  main.appendChild(sb);
+  p.textContent=c.texto||'';
+  if(c.texto)main.appendChild(p);
+  var m=c.video?String(c.video).match(/[-\w]{20,}/):null,side=null;
+  if(m){side=document.createElement('div');side.className='cside';side.appendChild(vsqEl(c,m[0]));if(c.validada)side.appendChild(sealEl())}
+  else if(c.validada)main.appendChild(sealEl());
+  row.appendChild(main);if(side)row.appendChild(side);li.appendChild(row);
   euBar(li,c);
-  if(pb){var bar=li.querySelector('.eubar');if(!bar){bar=document.createElement('div');bar.className='eubar';li.appendChild(bar)}bar.appendChild(pb)}
   cmActions(li,c);
-  var l=$('#clist');if(!l)return;
+  var l=listFor(c);if(!l)return;
   if(top) l.insertBefore(li,l.firstChild); else l.appendChild(li);
+  if(isTs(CMKEY)){tsZ();if(top)tsTab(c.tipo==='uso'?'uso':'sug')}
 }
 function initComments(key){
   var form=$('#cform'); if(!form) return;
   CMKEY=key;CMLIST=[];
   var ts=isTs(key);
   var st=$('#cs');
+  if(ts){TSTAB='uso';TSX={};document.querySelectorAll('.ctab').forEach(function(b){b.addEventListener('click',function(){tsTab(b.getAttribute('data-k'),true)})});document.querySelectorAll('.zmore').forEach(function(b){b.addEventListener('click',function(){TSX[b.closest('.zbox').getAttribute('data-k')]=1;tsZ()})});setHH()}
   var co=$('#copen');
   cOpen=function(){form.hidden=false;if(co)co.hidden=true;var th=$('#thanks');if(th)th.hidden=true;var fh=$('#cfh');if(fh)fh.hidden=false;var n=$('#cn');if(n)n.focus()};
   if(co) co.addEventListener('click',cOpen);
@@ -563,6 +622,7 @@ function initComments(key){
   fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];CMLIST=cs;AUTO=!!j.auto;
     if(AUTO){var cn=$('#cnote');if(cn)cn.textContent='Sua resposta aparece logo depois do envio.';var vh=$('#cvh');if(vh)vh.textContent='Envie um vídeo de até 15 segundos, com até 35 MB.'}
     cs.forEach(function(c){addComment(c,false)});
+    if(ts&&cs.length&&!cs.some(function(c){return c.tipo==='uso'}))tsTab('sug');
     if(cmHook)cmHook(cs);
     var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
   var ldb=$('#sendld');
@@ -570,10 +630,11 @@ function initComments(key){
   var nidTxt='';
   function refreshList(vid,tries){
     fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){
-      var cs=j.comentarios||[],l=$('#clist');if(!l)return;
+      var cs=j.comentarios||[],l=$('#clist')||$('#clist-uso');if(!l)return;
       if(!cs.some(function(c){return c.id===vid})){if(tries>0)setTimeout(function(){refreshList(vid,tries-1)},2500);return}
-      CMLIST=cs;l.innerHTML='';cs.forEach(function(c){addComment(c,false)});if(cmHook)cmHook(cs);
-      var li=l.querySelector('li[data-id="'+vid+'"]'),th=$('#thanks');if(li&&th){}
+      CMLIST=cs;clearLists();cs.forEach(function(c){addComment(c,false)});if(cmHook)cmHook(cs);
+      var li=document.querySelector('.comments li[data-id="'+vid+'"]'),th=$('#thanks');
+      if(li&&ts){var zz=li.closest('.zbox');if(zz)tsTab(zz.getAttribute('data-k'))}
       if(li&&th&&vid!==nidTxt){var hold=document.createElement('li');hold.className='thxli';th.hidden=false;hold.appendChild(th);li.parentNode.insertBefore(hold,li.nextSibling);
         li.scrollIntoView({behavior:'smooth',block:'center'})}
     }).catch(function(){if(tries>0)setTimeout(function(){refreshList(vid,tries-1)},2500)});
@@ -594,8 +655,10 @@ function initComments(key){
   function needTipo(){if(ts&&!tipoVal()){st.textContent='Escolha: sugestão de sinal ou sinal usado na sua região.';return true}return false}
   function updQuota(){
     var q=vquota(key),row=$('#cvrow'),ln=$('#cvlim');if(!row||!ln) return;
-    if(q<=0){row.innerHTML='';ln.hidden=false;ln.innerHTML=limitMsg(key)}
+    if(q<=0){row.innerHTML=OFFBTN;ln.hidden=false;ln.innerHTML=limitMsg(key);wireOff()}
   }
+  function wireOff(){var o=$('#cvoff'),l=$('#cvlim');if(o&&l)o.addEventListener('click',function(){l.innerHTML=limitMsg(key);l.hidden=!l.hidden})}
+  wireOff();
   form.addEventListener('submit',function(e){
     e.preventDefault();
     var t=$('#ct').value.trim(),n=$('#cn').value.trim();
