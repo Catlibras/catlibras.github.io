@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-18b";
+var BUILD="2026-11-18c";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -807,19 +807,19 @@ function celebNear(txt){var n=new Date();return celebHit(txt,n)||celebHit(txt,ad
 /* Carrossel (thumbnails sem título): Patrística, celebração, sinal, série. O que não tem destaque marcado na planilha fica de fora (exceto Patrística e sinal, que têm sugestão automática) */
 function carItems(withSinal){
   var out=[],used={};
-  function add(href,yt){if(!yt||used[href]) return;used[href]=1;out.push({href:href,yt:yt})}
+  function add(href,yt,t){if(!yt||used[href]) return;used[href]=1;out.push({href:href,yt:yt,t:t||''})}
   var ms=Object.keys(D.patr).sort(function(a,b){return a-b}),pv=null,m,i;
   for(m=0;m<ms.length&&!pv;m++) for(i=0;i<D.patr[ms[m]].length;i++) if(D.patr[ms[m]][i].dest){pv={m:ms[m],i:i};break}
   if(!pv&&ms.length&&D.patr[ms[0]].length) pv={m:ms[0],i:0};
-  if(pv) add('#video-patristica-'+pv.m+'-'+(pv.i+1),D.patr[pv.m][pv.i].orig);
-  if(withSinal) D.sinais.filter(function(x){return !x.soon&&celebNear(x.dia)}).forEach(function(x){add('#sinal-'+x.id,x.yt)});
-  D.cat.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt)});
+  if(pv) add('#video-patristica-'+pv.m+'-'+(pv.i+1),D.patr[pv.m][pv.i].orig,D.patr[pv.m][pv.i].nome);
+  if(withSinal) D.sinais.filter(function(x){return !x.soon&&celebNear(x.dia)}).forEach(function(x){add('#sinal-'+x.id,x.yt,label(x))});
+  D.cat.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt,c.titulo)});
   if(withSinal){
     var sd=D.sinais.filter(function(x){return !x.soon&&x.dest})[0]||recentList()[0];
-    if(sd) add('#sinal-'+sd.id,sd.yt);
+    if(sd) add('#sinal-'+sd.id,sd.yt,label(sd));
   }
   var se=D.cat.filter(function(c){return c.g&&c.dest})[0];
-  if(se) add('#catequese-'+se.id,se.yt);
+  if(se) add('#catequese-'+se.id,se.yt,se.titulo);
   if(withSinal){
     /* vagas restantes (até 6): sinais e catequeses sorteados, alternando */
     function mix(a){a=a.slice();for(var q=a.length-1;q>0;q--){var r=Math.floor(Math.random()*(q+1)),t=a[q];a[q]=a[r];a[r]=t}return a}
@@ -828,8 +828,8 @@ function carItems(withSinal){
     /* só os sinais em alta entram; sem dados de tendência ainda, sorteio livre como antes */
     var ps=tr.length?tr:mix(D.sinais.filter(function(x){return !x.soon&&x.yt})),pc=mix(D.cat.filter(function(c){return c.yt})),turn=0;
     while(out.length<6&&(ps.length||pc.length)){
-      if((turn%2===0&&ps.length)||!pc.length){var a1=ps.pop();add('#sinal-'+a1.id,a1.yt)}
-      else{var c1=pc.pop();add('#catequese-'+c1.id,c1.yt)}
+      if((turn%2===0&&ps.length)||!pc.length){var a1=ps.pop();add('#sinal-'+a1.id,a1.yt,label(a1))}
+      else{var c1=pc.pop();add('#catequese-'+c1.id,c1.yt,c1.titulo)}
       turn++;
     }
   }
@@ -839,14 +839,14 @@ function carItems(withSinal){
 function mixArr(a){a=a.slice();for(var q=a.length-1;q>0;q--){var r=Math.floor(Math.random()*(q+1)),t=a[q];a[q]=a[r];a[r]=t}return a}
 function catCarItems(){
   var out=[],used={},N=5;
-  function add(h,y){if(!y||used[h]||out.length>=N) return;used[h]=1;out.push({href:h,yt:y})}
+  function add(h,y,t){if(!y||used[h]||out.length>=N) return;used[h]=1;out.push({href:h,yt:y,t:t||''})}
   var ms=Object.keys(D.patr).sort(function(a,b){return a-b}),m,i;
   function patrItems(max){
     var pv=null;
     for(m=0;m<ms.length&&!pv;m++) for(i=0;i<D.patr[ms[m]].length;i++) if(D.patr[ms[m]][i].dest){pv={m:ms[m],i:i};break}
     if(!pv&&ms.length&&D.patr[ms[0]].length) pv={m:ms[0],i:0};
-    if(pv) add('#video-patristica-'+pv.m+'-'+(pv.i+1),D.patr[pv.m][pv.i].orig);
-    ms.forEach(function(k){if(max>1&&pv&&k!==pv.m&&D.patr[k].length) add('#video-patristica-'+k+'-1',D.patr[k][0].orig)});
+    if(pv) add('#video-patristica-'+pv.m+'-'+(pv.i+1),D.patr[pv.m][pv.i].orig,D.patr[pv.m][pv.i].nome);
+    ms.forEach(function(k){if(max>1&&pv&&k!==pv.m&&D.patr[k].length) add('#video-patristica-'+k+'-1',D.patr[k][0].orig,D.patr[k][0].nome)});
   }
   var cats=D.cat.filter(function(c){return c.yt});
   if(!cats.length){
@@ -854,21 +854,21 @@ function catCarItems(){
     var bySin={};D.sinais.forEach(function(x){bySin[x.id]=x});
     var okS=function(x){return x&&!x.soon&&x.yt};
     var tr=(D.trend||[]).map(function(t){return bySin[t.id]}).filter(okS).slice(0,2);
-    tr.forEach(function(x){add('#sinal-'+x.id,x.yt)});
-    mixArr(D.sinais.filter(okS)).forEach(function(x){add('#sinal-'+x.id,x.yt)});
+    tr.forEach(function(x){add('#sinal-'+x.id,x.yt,label(x))});
+    mixArr(D.sinais.filter(okS)).forEach(function(x){add('#sinal-'+x.id,x.yt,label(x))});
     return out.slice(0,N);
   }
   if(D.grupos.some(function(g){return g.leva==='patr'&&newDate(g.data,183)})) patrItems(2);
-  cats.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt)});
-  cats.filter(function(c){return c.dest}).forEach(function(c){add('#catequese-'+c.id,c.yt)});
-  mixArr(cats).forEach(function(c){add('#catequese-'+c.id,c.yt)});
+  cats.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt,c.titulo)});
+  cats.filter(function(c){return c.dest}).forEach(function(c){add('#catequese-'+c.id,c.yt,c.titulo)});
+  mixArr(cats).forEach(function(c){add('#catequese-'+c.id,c.yt,c.titulo)});
   return out;
 }
 function carHtml(items){
   if(!items.length) return '';
-  var slides=items.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="'+x.href+'" aria-label="Assistir"><img src="'+ytimg(x.yt)+'" data-id="'+x.yt+'" alt="" onload="ytOk(this)" onerror="ytOk(this,1)"><span class="play">'+PLAY+'</span></a>'}).join('');
+  var slides=items.map(function(x,k){return '<a draggable="false" class="slide'+(k===0?' on':'')+'" href="'+x.href+'" data-t="'+esc(x.t||'')+'" aria-label="Assistir"><img src="'+ytimg(x.yt)+'" data-id="'+x.yt+'" alt="" onload="ytOk(this)" onerror="ytOk(this,1)"><span class="play">'+PLAY+'</span></a>'}).join('');
   var dots=items.map(function(x,k){return '<button type="button" data-dot="'+k+'" aria-label="Destaque '+(k+1)+'"'+(k===0?' aria-current="true"':'')+'></button>'}).join('');
-  return '<div class="spot thumb" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
+  return '<div class="spothead section-head"><h2 id="spotitle">'+esc(items[0].t||'')+'</h2></div><hr class="rule spothr"><div class="spot thumb" id="spot" aria-roledescription="carrossel">'+slides+'<div class="dots">'+dots+'</div></div>';
 }
 /* Recomendamos: círculos com a logo do canal e o nome embaixo, rolando para o lado */
 function recHtml(){
@@ -1326,7 +1326,7 @@ function initSpot(){
   if(spotTimer){clearInterval(spotTimer);spotTimer=null}
   var sp=$('#spot');if(!sp)return;
   var slides=sp.querySelectorAll('.slide'),dots=sp.querySelectorAll('.dots button'),i=0;
-  function show(n){i=(n+slides.length)%slides.length;slides.forEach(function(s,k){s.classList.toggle('on',k===i)});dots.forEach(function(d,k){if(k===i)d.setAttribute('aria-current','true');else d.removeAttribute('aria-current')})}
+  function show(n){i=(n+slides.length)%slides.length;slides.forEach(function(s,k){s.classList.toggle('on',k===i)});var st0=document.getElementById('spotitle');if(st0)st0.textContent=slides[i].getAttribute('data-t')||'';dots.forEach(function(d,k){if(k===i)d.setAttribute('aria-current','true');else d.removeAttribute('aria-current')})}
   function start(){if(spotTimer||slides.length<2||(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches))return;spotTimer=setInterval(function(){show(i+1)},4000)}
   function pause(){clearInterval(spotTimer);spotTimer=null}
   dots.forEach(function(d,k){d.addEventListener('click',function(){show(k)})});
@@ -1441,7 +1441,7 @@ function showInstBar(forceHelp){
   });
   $('#instno').addEventListener('click',function(){installDismissed=true;removeInstBar()});
 }
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;if(!standalone()&&!installDismissed&&document.body.classList.contains('home')) showInstBar()});
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;if(!standalone()&&!installDismissed&&document.body.classList.contains('home')&&!(window.matchMedia&&matchMedia('(min-width:1000px) and (min-aspect-ratio:1/1)').matches)) showInstBar()});
 window.addEventListener('appinstalled',function(){deferredInstall=null;removeInstBar();var l=$('#instl');if(l) l.hidden=true});
 var instl=$('#instl');
 if(instl&&!standalone()){

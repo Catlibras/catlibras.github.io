@@ -975,6 +975,16 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
   .who{font-size:12.5px}
   .role{font-size:10.5px;padding:2px 5px}
 }
+
+/* 2026-11-18c: desktop - título do vídeo sobre o carrossel, sem bordas pretas, colunas alinhadas */
+.spothead,.spothr{display:none}
+@media (min-width:1000px) and (min-aspect-ratio:1/1){
+  .hgrid .spothead,.hgrid .spothr{display:block}
+  .hgrid #spotitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hgrid .spot.thumb{border:0;border-radius:4px;background:var(--bg)}
+  .hgrid .spot.thumb .slide img{transform:scale(1.1)}
+  .hgrid2{grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+}
 </style>
 </head>
 <body>
