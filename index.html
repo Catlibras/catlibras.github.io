@@ -6,17 +6,17 @@
 <title>Catlibras – Sinais católicos em Libras</title>
 <meta name="description" content="Catálogo de sinais católicos em Libras, com voz: santos, profetas, personagens bíblicos, expressões da fé, Patrística e Oração Eucarística. Canal Catlibras.">
 <meta name="robots" content="index,follow,max-image-preview:large">
-<link rel="canonical" href="https://catlibras.github.io/">
-<meta property="og:url" content="https://catlibras.github.io/">
+<link rel="canonical" href="https://www.catlibras.com.br/">
+<meta property="og:url" content="https://www.catlibras.com.br/">
 <meta property="og:site_name" content="Catlibras">
 <meta property="og:locale" content="pt_BR">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Catlibras","alternateName":"Catlibras – Sinais católicos em Libras","url":"https://catlibras.github.io/","inLanguage":"pt-BR","description":"Catálogo de sinais católicos em Libras, com voz.","publisher":{"@type":"Organization","name":"Catlibras","url":"https://catlibras.github.io/","logo":"https://catlibras.github.io/icons/icon-maskable-512.png","sameAs":["https://www.youtube.com/@catlibras"]}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Catlibras","alternateName":"Catlibras – Sinais católicos em Libras","url":"https://www.catlibras.com.br/","inLanguage":"pt-BR","description":"Catálogo de sinais católicos em Libras, com voz.","publisher":{"@type":"Organization","name":"Catlibras","url":"https://www.catlibras.com.br/","logo":"https://www.catlibras.com.br/icons/icon-maskable-512.png","sameAs":["https://www.youtube.com/@catlibras"]}}</script>
 <meta name="theme-color" content="#f0e4c8">
 <script>(function(){var t="light";try{if(localStorage.getItem("cl_theme")==="dark")t="dark"}catch(e){}document.documentElement.setAttribute("data-theme",t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="dark"?"#08142b":"#f0e4c8")})();</script>
 <meta property="og:title" content="Catlibras – Sinais católicos em Libras">
 <meta property="og:description" content="Catálogo de sinais católicos em Libras, com voz.">
-<meta property="og:image" content="https://catlibras.github.io/icons/icon-maskable-512.png">
+<meta property="og:image" content="https://www.catlibras.com.br/icons/icon-maskable-512.png">
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-48.png" sizes="48x48" type="image/png">
@@ -908,6 +908,27 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
 .vcard .seal{position:static;flex:none}
 .vcard .vsqw{flex:none}
 @media (min-width:1000px) and (min-aspect-ratio:1/1){.vsqw{width:124px;height:124px}.vcard{flex-basis:min(100%,380px)}}
+
+/* 2026-11-17: desktop - cabeçalho numa linha, duas colunas na tela inicial; validados só miniatura */
+.vrow2{display:flex;flex-wrap:wrap;gap:12px;overflow:visible}
+.vcard{border:0;background:none;padding:0;flex:0 0 auto;display:block}
+@media (min-width:1000px) and (min-aspect-ratio:1/1){
+  body.home .top{margin-bottom:0}
+  body.home .hstrip{position:absolute;left:50%;top:0;transform:translateX(-50%);width:max-content;max-width:60%;height:64px;padding:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  body.home .top.sopen .hstrip{display:none}
+  body.home .hstrip .strip{display:flex;gap:10px;margin:0;max-width:none;pointer-events:auto}
+  body.home .hstrip .ci{flex-direction:row;align-items:center;gap:8px;padding:5px 16px 5px 5px;border:1px solid var(--ring);border-radius:999px;font-size:13.5px;font-weight:600;white-space:nowrap;background:linear-gradient(160deg,var(--ic1),var(--ic2))}
+  body.home .hstrip .ci i{width:34px;height:34px;border:0;background:transparent}
+  body.home .hstrip .ci svg{width:20px;height:20px}
+  body.home .hstrip .ci:has(i.p){background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
+  body.home .hstrip .ci:has(i.p) i{color:var(--btn-ink)}
+  body.home .hstrip .ci:hover{box-shadow:0 0 0 1px var(--gold)}
+  .hgrid,.hgrid2{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:0 32px;align-items:start}
+  .hgrid .spot.thumb{max-width:none;margin-inline:0}
+  .hgrid>.section,.hgrid2>.section{margin-top:28px}
+  #recent{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;justify-content:stretch}
+  #recent .tile.plus{grid-column:1/-1;justify-self:center;margin:4px 0 0}
+}
 </style>
 </head>
 <body>

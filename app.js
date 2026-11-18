@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-13a";
+var BUILD="2026-11-17a";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -1046,10 +1046,9 @@ function tsPageInit(t){
       vb.innerHTML='<section class="tsvals"><h2 class="vh">'+(vals.length>1?'Sinais validados':'Sinal validado')+'</h2><div class="vrow2"></div></section>';
       var vr=vb.querySelector('.vrow2');
       vals.forEach(function(c){
-        var m=String(c.video||'').match(/[-\w]{20,}/),nm=String(c.nome||''),card=document.createElement('div'),inf=document.createElement('div');
-        card.className='vcard';inf.className='vinfo';
-        inf.innerHTML='<span class="seal">'+CK+'</span><b>'+esc(nm.slice(0,14)+(nm.length>14?'…':'')+(c.estado?' - '+c.estado:''))+'</b>'+(c.texto?'<p>'+esc(c.texto)+'</p>':'');
-        card.appendChild(inf);if(m)card.appendChild(vsqEl(c,m[0]));vr.appendChild(card);
+        var m=String(c.video||'').match(/[-\w]{20,}/),card=document.createElement('div');
+        if(!m) return;
+        card.className='vcard';card.appendChild(vsqEl(c,m[0]));vr.appendChild(card);
       });
     }
   };
@@ -1088,11 +1087,12 @@ var views={
     var PLUS='<button type="button" class="tile plus" id="more" aria-label="Mostrar mais vídeos" title="Mostrar mais vídeos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>';
     var rec=RL.map(function(s,i){var t=signTile(s,isNew(s));return (i<PAGE?t:t.replace(/^<a /,'<a hidden '))+(i===PAGE-1&&RL.length>PAGE?PLUS:'')}).join('');
     var more='';
-    return ''+
+    return '<div class="hgrid">'+
       (spot?'<section class="section spotsec">'+spot+'</section>':'')+
       (rec?'<section class="section"><div class="section-head"><h2>Últimos vídeos</h2></div><hr class="rule"><div class="grid compact" id="recent">'+rec+'</div>'+more+'</section>':'')+
+      '</div><div class="hgrid2">'+
       (th?'<section class="section"><div class="section-head"><h2>Temas</h2></div><hr class="rule"><div class="grid wide" id="temasgrid">'+th+'</div>'+moreTh+'</section>':'')+
-      recHtml();
+      recHtml()+'</div>';
   },
   sobre:function(){
     var SIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
