@@ -940,18 +940,13 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
   body.home.scr .top .wrap.hrow{padding-block:revert}
 }
 @media (min-width:1000px) and (min-aspect-ratio:1/1){
-  .hgrid{align-items:stretch;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+  .hgrid{align-items:start;grid-template-columns:minmax(0,16fr) minmax(0,9fr)}
   .hgrid>.section{margin-top:28px;display:flex;flex-direction:column}
   .hgrid>.spotsec{display:block}
   .hgrid .spot.thumb{height:auto;aspect-ratio:16/9}
   .hgrid>.section:not(.spotsec) .section-head{margin-bottom:0}
-  .hgrid #recent{flex:1;min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px}
-  .hgrid #recent.open{grid-template-rows:none;grid-auto-rows:auto}
-  .hgrid #recent.open .tile{aspect-ratio:5/4}
-  .hgrid #recent .tile{height:100%;min-height:0;aspect-ratio:auto}
-  .hgrid #recent{overflow:hidden}
-  .hgrid #recent.open{overflow:visible}
-  .hgrid #recent.open .tile{height:auto}
+  .hgrid #recent{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:auto;gap:10px}
+  .hgrid #recent .tile{aspect-ratio:1/1;height:auto}
   #recent .tile.plus{grid-column:auto;justify-self:center;align-self:center;margin:0;width:56px;height:56px}
   .hgrid2 #temasgrid .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;display:grid;place-items:center}
 }
@@ -982,8 +977,7 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
   .hgrid .spothead,.hgrid .spothr{display:block}
   .hgrid #spotitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hgrid .spot.thumb{border:0;border-radius:4px;background:var(--bg)}
-  .hgrid .spot.thumb .slide img{transform:scale(1.1)}
-  .hgrid2{grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+  .hgrid2{grid-template-columns:minmax(0,16fr) minmax(0,9fr)}
 }
 </style>
 </head>
