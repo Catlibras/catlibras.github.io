@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<link rel="preconnect" href="https://i.ytimg.com" crossorigin>
+<link rel="preconnect" href="https://drive.google.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Catlibras – Sinais católicos em Libras</title>
@@ -928,6 +930,50 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
   .hgrid>.section,.hgrid2>.section{margin-top:28px}
   #recent{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;justify-content:stretch}
   #recent .tile.plus{grid-column:1/-1;justify-self:center;margin:4px 0 0}
+}
+
+/* 2026-11-18: desktop - cabeçalho fixo, carrossel e mosaico de mesma altura, + dentro da grade */
+@media (min-width:1000px) and (min-aspect-ratio:1/1) and (min-height:621px){
+  body.home.scr .top .brand img:not(.bsym){display:revert}
+  body.home.scr .top .brand .bsym{display:none}
+  body.home.scr .top .brand .logo-l,body.home.scr .top .brand .logo-d{display:revert!important}
+  body.home.scr .top .wrap.hrow{padding-block:revert}
+}
+@media (min-width:1000px) and (min-aspect-ratio:1/1){
+  .hgrid{align-items:stretch;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+  .hgrid>.section{margin-top:28px;display:flex;flex-direction:column}
+  .hgrid>.spotsec{display:block}
+  .hgrid .spot.thumb{height:auto;aspect-ratio:16/9}
+  .hgrid>.section:not(.spotsec) .section-head{margin-bottom:0}
+  .hgrid #recent{flex:1;min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px}
+  .hgrid #recent.open{grid-template-rows:none;grid-auto-rows:auto}
+  .hgrid #recent.open .tile{aspect-ratio:5/4}
+  .hgrid #recent .tile{height:100%;min-height:0;aspect-ratio:auto}
+  .hgrid #recent{overflow:hidden}
+  .hgrid #recent.open{overflow:visible}
+  .hgrid #recent.open .tile{height:auto}
+  #recent .tile.plus{grid-column:auto;justify-self:center;align-self:center;margin:0;width:56px;height:56px}
+  .hgrid2 #temasgrid .tile.plus{width:56px;height:56px;aspect-ratio:auto;padding:0;border-radius:50%;justify-self:center;align-self:center;display:grid;place-items:center}
+}
+
+/* 2026-11-18b: imagens entram suavemente; Sobre com logos maiores; Equipe 4 por linha no celular vertical */
+.cover .cimg{opacity:0;transition:opacity .35s ease}
+.cover .cimg.ld{opacity:1}
+.cover .cpre{display:none}
+.cover.img::after{content:"";position:absolute;inset:0;background:var(--u) var(--x,50%) var(--y,50%)/cover no-repeat;opacity:0;transition:opacity .35s ease}
+.cover.img.ld::after{opacity:1}
+@media (prefers-reduced-motion:reduce){.cover .cimg,.cover.img::after{transition:none}}
+.entidades{justify-content:center;text-align:center}
+.entidade{align-items:center;width:min(350px,100%)}
+.entidade .ent-box{width:100%;height:133px}
+@media (max-aspect-ratio:1/1) and (max-width:700px){
+  .team{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 6px}
+  .pw,.photo{width:100%;max-width:104px;height:auto;aspect-ratio:1}
+  .photo svg{width:40%;height:40%}
+  .igb{width:22px;height:22px;right:-2px;bottom:-2px}
+  .igb svg{width:12px;height:12px}
+  .who{font-size:12.5px}
+  .role{font-size:10.5px;padding:2px 5px}
 }
 </style>
 </head>
