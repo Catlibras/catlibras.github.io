@@ -10,11 +10,11 @@ self.addEventListener('activate',function(e){
 self.addEventListener('fetch',function(e){
   var r=e.request,u=new URL(r.url);
   if(r.method!=='GET') return;
-  /* imagens (miniaturas, capas): mostra a guardada na hora e atualiza em segundo plano */
-  if(r.destination==='image'&&/^https?:/.test(u.protocol)){
+  /* imagens (miniaturas e capas): mostra a que já está guardada e atualiza em segundo plano */
+  if(r.destination==='image'&&/^https?:$/.test(u.protocol)){
     e.respondWith(caches.open(IMG).then(function(c){return c.match(r).then(function(m){
       var net=fetch(r).then(function(res){
-        if(res&&(res.ok||res.type==='opaque')){c.put(r,res.clone()).then(function(){return c.keys()}).then(function(ks){if(ks.length>400) c.delete(ks[0])}).catch(function(){})}
+        if(res&&(res.ok||res.type==='opaque')){c.put(r,res.clone()).then(function(){return c.keys()}).then(function(ks){if(ks.length>400) return c.delete(ks[0])}).catch(function(){})}
         return res;
       }).catch(function(){return m||Response.error()});
       return m||net;
