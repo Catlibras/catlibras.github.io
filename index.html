@@ -1,8 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<link rel="preconnect" href="https://i.ytimg.com" crossorigin>
-<link rel="preconnect" href="https://drive.google.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Catlibras – Sinais católicos em Libras</title>
@@ -952,12 +950,6 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
 }
 
 /* 2026-11-18b: imagens entram suavemente; Sobre com logos maiores; Equipe 4 por linha no celular vertical */
-.cover .cimg{opacity:0;transition:opacity .35s ease}
-.cover .cimg.ld{opacity:1}
-.cover .cpre{display:none}
-.cover.img::after{content:"";position:absolute;inset:0;background:var(--u) var(--x,50%) var(--y,50%)/cover no-repeat;opacity:0;transition:opacity .35s ease}
-.cover.img.ld::after{opacity:1}
-@media (prefers-reduced-motion:reduce){.cover .cimg,.cover.img::after{transition:none}}
 .entidades{justify-content:center;text-align:center}
 .entidade{align-items:center;width:min(350px,100%)}
 .entidade .ent-box{width:100%;height:133px}
@@ -976,7 +968,9 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
 @media (min-width:1000px) and (min-aspect-ratio:1/1){
   .hgrid .spothead,.hgrid .spothr{display:block}
   .hgrid #spotitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .hgrid .spot.thumb{border:0;border-radius:4px;background:var(--bg)}
+  .hgrid .spot.thumb{border:0;border-radius:0;background:transparent;outline:0}
+  .hgrid .spot.thumb .slide{outline:0;background:none!important}
+  .hgrid .spot.thumb .slide img{inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);transform:scale(1.08)}
   .hgrid2{grid-template-columns:minmax(0,16fr) minmax(0,9fr)}
 }
 </style>
