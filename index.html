@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
+<link rel="preconnect" href="https://i.ytimg.com" crossorigin>
+<link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Catlibras – Sinais católicos em Libras</title>
@@ -973,6 +975,20 @@ body:not(.solopage):not(.watch) #app{zoom:var(--fz,1)}
   .hgrid .spot.thumb .slide img{inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);transform:scale(1.08)}
   .hgrid2{grid-template-columns:minmax(0,16fr) minmax(0,9fr)}
 }
+
+/* 2026-11-19b: imagens entram suavemente (sem fundo genérico seco) */
+.cover .cimg{opacity:0;transition:opacity .35s ease}
+.cover .cimg.imgok{opacity:1}
+.cover .cpre{display:none}
+.cover.img::after{content:"";position:absolute;inset:0;background:var(--u) var(--x,50%) var(--y,50%)/cover no-repeat;opacity:0;transition:opacity .35s ease}
+.cover.img.imgok::after{opacity:1}
+@media (prefers-reduced-motion:reduce){.cover .cimg,.cover.img::after{transition:none}}
+
+/* 2026-11-20: brilho dourado passando pelo selo Novo */
+.newtag{overflow:hidden}
+.newtag::after{content:"";position:absolute;top:-30%;bottom:-30%;left:-60%;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.85),transparent);transform:skewX(-20deg);animation:nbrilho 4.5s ease-in-out infinite}
+@keyframes nbrilho{0%,70%{left:-60%}100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.newtag::after{animation:none;display:none}}
 </style>
 </head>
 <body>

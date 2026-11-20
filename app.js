@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-19a";
+var BUILD="2026-11-20b";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -18,6 +18,7 @@ function ytid(u){
   return /^[A-Za-z0-9_-]{11}$/.test(u)?u:'';
 }
 window.ytOk=function(im,err){var id=im.getAttribute('data-id'),st=+(im.getAttribute('data-s')||0),u=['hq720','mqdefault','hqdefault','sddefault'];
+  if(!err&&im.naturalWidth>120) im.classList.add('imgok');
   if((err||(im.naturalWidth&&im.naturalWidth<=120))&&st<u.length-1){im.setAttribute('data-s',st+1);im.src='https://i.ytimg.com/vi/'+id+'/'+u[st+1]+'.jpg'}};
 function thumb(id){return 'https://img.youtube.com/vi/'+id+'/mqdefault.jpg'}
 function yes(v){return norm(v)==='sim'}
@@ -191,8 +192,9 @@ function cover(c,seed){
   var st='--x:'+c.x+';--y:'+c.y+';--z:'+c.z+';';
   var grad='radial-gradient(circle at 28% 24%,hsl('+hh+' 58% 44%) 0,transparent 52%),radial-gradient(circle at 78% 82%,hsl('+b+' 62% 32%) 0,transparent 58%)';
   if(c.yt) return '<span class="cover" style="'+st+'background-color:hsl('+hh+' 42% 16%)"><img class="cimg" src="'+ytimg(c.yt)+'" data-id="'+c.yt+'" alt="" loading="lazy" onload="ytOk(this)" onerror="ytOk(this,1)"></span>';
-  var bg=(c.img?'url('+c.img.replace(/[()'"\s]/g,function(ch){return '%'+ch.charCodeAt(0).toString(16)})+'),':'')+grad;
-  return '<span class="cover img" style="'+st+'background-image:'+bg+';background-color:hsl('+hh+' 42% 16%)"></span>';
+  if(c.img){var uu=c.img.replace(/[()'"\s]/g,function(ch){return '%'+ch.charCodeAt(0).toString(16)});
+    return '<span class="cover img" style="'+st+'--u:url('+uu+');background-image:'+grad+';background-color:hsl('+hh+' 42% 16%)"><img class="cpre" src="'+esc(c.img)+'" alt="" onload="this.parentNode.classList.add(\'imgok\')" onerror="this.remove()"></span>';}
+  return '<span class="cover img" style="'+st+'background-image:'+grad+';background-color:hsl('+hh+' 42% 16%)"></span>';
 }
 function signTile(s,isNew){
   if(s.soon) return '<div class="tile cov soon" aria-label="'+esc(label(s))+', em breve">'+cover(s.capa,s.id)+'<span class="soontag">Em breve</span><span class="name">'+esc(label(s))+'</span></div>';
@@ -802,6 +804,10 @@ function addVeil(fr){if(fr&&!fr.querySelector('.veil')) fr.insertAdjacentHTML('b
 /* celebração: entra um dia antes e fica durante todo o dia */
 function celebNear(txt){var n=new Date();return celebHit(txt,n)||celebHit(txt,addD(n,1))}
 /* Carrossel (thumbnails sem título): Patrística, celebração, sinal, série. O que não tem destaque marcado na planilha fica de fora (exceto Patrística e sinal, que têm sugestão automática) */
+/* número do dia (hora local) e sorteio que muda a cada dia */
+function dayN(){var d=new Date();return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)}
+function dayPick(a,n){a=a.slice();var x=dayN()*2654435761%4294967296||1;function rnd(){x=(x*1664525+1013904223)%4294967296;return x/4294967296}
+  for(var q=a.length-1;q>0;q--){var r=Math.floor(rnd()*(q+1)),t=a[q];a[q]=a[r];a[r]=t}return a.slice(0,n)}
 function carItems(withSinal){
   var out=[],used={};
   function add(href,yt,t){if(!yt||used[href]) return;used[href]=1;out.push({href:href,yt:yt,t:t||''})}
@@ -812,7 +818,7 @@ function carItems(withSinal){
   if(withSinal) D.sinais.filter(function(x){return !x.soon&&celebNear(x.dia)}).forEach(function(x){add('#sinal-'+x.id,x.yt,label(x))});
   D.cat.filter(function(c){return celebNear(c.dia)}).forEach(function(c){add('#catequese-'+c.id,c.yt,c.titulo)});
   if(withSinal){
-    var sd=D.sinais.filter(function(x){return !x.soon&&x.dest})[0]||recentList()[0];
+    var sds=D.sinais.filter(function(x){return !x.soon&&x.dest&&x.yt}),sd=sds.length?sds[dayN()%sds.length]:recentList()[0];
     if(sd) add('#sinal-'+sd.id,sd.yt,label(sd));
   }
   var se=D.cat.filter(function(c){return c.g&&c.dest})[0];
@@ -821,7 +827,7 @@ function carItems(withSinal){
     /* vagas restantes (até 6): sinais e catequeses sorteados, alternando */
     function mix(a){a=a.slice();for(var q=a.length-1;q>0;q--){var r=Math.floor(Math.random()*(q+1)),t=a[q];a[q]=a[r];a[r]=t}return a}
     var bySin={};D.sinais.forEach(function(x){bySin[x.id]=x});
-    var tr=(D.trend||[]).map(function(t){return bySin[t.id]}).filter(function(x){return x&&!x.soon&&x.yt}).slice(0,3).reverse();
+    var tr=(D.trend||[]).map(function(t){return bySin[t.id]}).filter(function(x){return x&&!x.soon&&x.yt}).slice(0,8);tr=dayPick(tr,3);
     /* só os sinais em alta entram; sem dados de tendência ainda, sorteio livre como antes */
     var ps=tr.length?tr:mix(D.sinais.filter(function(x){return !x.soon&&x.yt})),pc=mix(D.cat.filter(function(c){return c.yt})),turn=0;
     while(out.length<6&&(ps.length||pc.length)){
@@ -1300,6 +1306,7 @@ function render(){
   document.querySelectorAll('#menu a').forEach(function(x){if(x.getAttribute('data-nav')===nav) x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
   closeVideo();initSpot();maybeInstBar();recPeek();
   if(h==='catalogo') fitLetters();
+  document.querySelectorAll('img.cimg').forEach(function(im,i){if(i<16)im.loading='eager'});
   if(after) after();
   markSeen();
   window.scrollTo(0,0);
