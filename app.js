@@ -4,7 +4,7 @@
 var CFG = window.CATLIBRAS || {};
 var $ = function(s,r){return (r||document).querySelector(s)};
 var app = $('#app');
-var BUILD="2026-11-20b";
+var BUILD="2026-11-22b";
 var PLAY = '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M2 1l11 6-11 6z"/></svg>';
 
 /* ---------- utilidades ---------- */
@@ -57,7 +57,12 @@ function loadData(){
   var ex=window.DADOS_EXEMPLO;
   if(!CFG.SHEET_ID) return Promise.resolve({raw:fromExample(ex),source:'exemplo'});
   var tabs=['Sinais','Variações','Patrística','Oração Eucarística','Acessibilidade','Temas','Equipe','Configurações','Recomendamos','Catequeses','Grupos de catequese','Tendências','Tem sinal?'];
-  return Promise.all(tabs.map(function(t){return fetchTab(t).catch(function(){return null})})).then(function(r){
+  /* guarda a última leitura boa no aparelho: se a planilha estiver sobrecarregada ou sem resposta, o site usa a cópia guardada */
+  var cached={},fresh=false;
+  try{cached=JSON.parse(localStorage.getItem('cl_sheet')||'{}')||{}}catch(e){cached={}}
+  function lim(p,ms){return new Promise(function(res,rej){var tm=setTimeout(function(){rej(new Error('timeout'))},ms);p.then(function(v){clearTimeout(tm);res(v)},function(e){clearTimeout(tm);rej(e)})})}
+  return Promise.all(tabs.map(function(t){return lim(fetchTab(t),15000).then(function(rows){cached[t]=rows;fresh=true;return rows}).catch(function(){return cached[t]||null})})).then(function(r){
+    if(fresh){try{localStorage.setItem('cl_sheet',JSON.stringify(cached))}catch(e){}}
     if(!r[0]&&!r[2]) throw new Error('offline');
     return {raw:{sinais:r[0]||[],variacoes:r[1]||[],patristica:r[2]||[],eucaristica:r[3]||[],acessibilidade:r[4]||[],temas:r[5]||[],equipe:r[6]||[],config:r[7]||[],recomendamos:r[8]||[],catequeses:r[9]||[],grupos:r[10]||[],tendencias:r[11]||[],temsinal:r[12]||[]},source:'planilha'};
   });
@@ -517,7 +522,7 @@ function commentsBlock(key,withVideo){
     '<div class="row"><button class="btn small" type="submit">Publicar</button>'+
     (withVideo?'<span class="vrow" id="cvrow">'+vbtns+'</span>':'')+'</div>'+
     (withVideo?'<p class="note vlim" id="cvlim" hidden></p>':'')+
-    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos, com até 35 MB. Ele aparece no site depois da aprovação da equipe.</p>':'')+
+    (withVideo?'<p class="note vhint" id="cvh" hidden>Envie um vídeo de até 15 segundos. Vídeos pesados (mais de 35 MB) são reduzidos automaticamente. Ele aparece no site depois da aprovação da equipe.</p>':'')+
     '<div id="sendld" hidden>'+loaderHtml('Enviando')+'</div>'+(ts?'<p class="note" id="cnote">Sua resposta aparece depois da aprovação da equipe.</p>':'')+
     '<p class="status" id="cs" role="status"></p></form>'+
     '<div class="pend" id="pend" hidden>Seu vídeo está em análise. Quando for aprovado, ele aparece neste espaço.</div>';
@@ -530,6 +535,8 @@ function commentsBlock(key,withVideo){
 function openDrive(t,id){
   $('#vt').textContent=t;$('#vo').hidden=false;
   $('#vslot').innerHTML=driveFrame(id,t);
+  var vn=$('#vnote');if(!vn){vn=document.createElement('p');vn.id='vnote';vn.style.cssText='text-align:center;margin:.7em 0 0;font-size:.85rem;color:#fff;opacity:.8';$('#vslot').parentNode.appendChild(vn)}
+  vn.textContent='Se o vídeo não abrir, tente de novo mais tarde.';
 }
 var TSTAB='uso',TSX={};
 function tsTab(k,scroll){
@@ -625,11 +632,13 @@ function initComments(key){
     if(th&&th.scrollIntoView)th.scrollIntoView({behavior:'smooth',block:'center'});
   }
   fetch(CFG.COMENTARIOS_URL+'?pagina='+encodeURIComponent(key)).then(function(r){return r.json()}).then(function(j){var cs=j.comentarios||[];CMLIST=cs;AUTO=!!j.auto;
-    if(AUTO){var cn=$('#cnote');if(cn)cn.textContent='Sua resposta aparece logo depois do envio.';var vh=$('#cvh');if(vh)vh.textContent='Envie um vídeo de até 15 segundos, com até 35 MB.'}
+    if(AUTO){var cn=$('#cnote');if(cn)cn.textContent='Sua resposta aparece logo depois do envio.';var vh=$('#cvh');if(vh)vh.textContent='Envie um vídeo de até 15 segundos. Vídeos pesados são reduzidos automaticamente.'}
     cs.forEach(function(c){addComment(c,false)});
     if(ts&&cs.length&&!cs.some(function(c){return c.tipo==='uso'}))tsTab('sug');
     if(cmHook)cmHook(cs);
-    var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}}).catch(function(){});
+    var pl=pendGet();if(pl.length){var rest=pl.filter(function(x){return !(x.k===key&&cs.some(function(c){return c.video&&c.nome===x.n}))});if(rest.length!==pl.length){pendSet(rest);showPend()}}
+    if(j.limite)cmAviso('Muitos envios agora. Se o seu comentário ou vídeo não aparecer, tente de novo daqui a pouco.')}).catch(function(){cmAviso('Os comentários estão temporariamente indisponíveis por excesso de acessos. Tente de novo em alguns minutos.')});
+  function cmAviso(t){var cm=document.querySelector('.comments');if(!cm)return;var p=cm.querySelector('.cmoff');if(!p){p=document.createElement('p');p.className='note cmoff';p.setAttribute('role','status');cm.insertBefore(p,cm.firstChild)}p.textContent=t}
   var ldb=$('#sendld');
   function busy(on,msg){if(!ldb)return;ldb.hidden=!on;if(on){var t=ldb.querySelector('.lt');if(t)t.textContent=msg;var vh0=$('#cvh');if(vh0)vh0.hidden=true;var sb=form.querySelector('button[type=submit]');if(sb)sb.disabled=true;st.textContent=''}else{var sb2=form.querySelector('button[type=submit]');if(sb2)sb2.disabled=false}}
   var nidTxt='';
@@ -687,8 +696,50 @@ function initComments(key){
   function durOk(file,cb){
     var v=document.createElement('video'),u=URL.createObjectURL(file),done=false;
     function fin(ok){if(done)return;done=true;URL.revokeObjectURL(u);cb(ok)}
-    v.preload='metadata';v.onloadedmetadata=function(){fin(!(v.duration>15.5))};v.onerror=function(){fin(true)};
-    setTimeout(function(){fin(true)},4000);v.src=u;
+    v.preload='metadata';v.onloadedmetadata=function(){fin(!(v.duration>15.5),v.duration)};v.onerror=function(){fin(true,0)};
+    setTimeout(function(){fin(true,0)},4000);v.src=u;
+  }
+  /* Reduz o vídeo (até 720p) no próprio aparelho quando passa de 35 MB; devolve null se o aparelho não conseguir */
+  function squeeze(file,dur,prog,cb){
+    var MAXB=35*1024*1024,fin=false,v,u,rec,ctx,tm;
+    function end(f){if(fin)return;fin=true;clearTimeout(tm);try{v.pause()}catch(e){}try{URL.revokeObjectURL(u)}catch(e){}try{ctx&&ctx.close()}catch(e){}cb(f)}
+    try{
+      if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream||!(dur>0)){cb(null);return}
+      var mt=['video/mp4;codecs=avc1','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].filter(function(t){return MediaRecorder.isTypeSupported(t)})[0];
+      if(!mt){cb(null);return}
+      v=document.createElement('video');u=URL.createObjectURL(file);v.src=u;v.playsInline=true;v.setAttribute('playsinline','');v.preload='auto';
+      v.onerror=function(){end(null)};
+      v.onloadedmetadata=function(){
+        var w=v.videoWidth,h=v.videoHeight,k=Math.min(1,1280/Math.max(w,h));
+        var cw=Math.max(2,Math.round(w*k/2)*2),ch=Math.max(2,Math.round(h*k/2)*2);
+        var cv=document.createElement('canvas');cv.width=cw;cv.height=ch;var g=cv.getContext('2d');
+        var stream=cv.captureStream(30);
+        try{
+          var AC=window.AudioContext||window.webkitAudioContext;
+          if(AC){ctx=new AC();var src=ctx.createMediaElementSource(v),dest=ctx.createMediaStreamDestination();src.connect(dest);dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)})}
+        }catch(e){}
+        var vbps=Math.max(1500000,Math.min(8000000,Math.floor(27*1024*1024*8/Math.max(dur,1)-160000)));
+        var parts=[];
+        try{rec=new MediaRecorder(stream,{mimeType:mt,videoBitsPerSecond:vbps,audioBitsPerSecond:128000})}catch(e){end(null);return}
+        rec.ondataavailable=function(e){if(e.data&&e.data.size)parts.push(e.data)};
+        rec.onstop=function(){
+          if(fin)return;
+          var b=new Blob(parts,{type:mt.split(';')[0]});
+          if(!b.size||b.size>MAXB*0.97){end(null);return}
+          var ext=/mp4/.test(b.type)?'.mp4':'.webm';
+          var nm=String(file.name||'video').replace(/\.[^.]*$/,'')+ext;
+          var f2;try{f2=new File([b],nm,{type:b.type})}catch(e){f2=b;f2.name=nm}
+          end(f2);
+        };
+        function draw(){if(fin)return;try{g.drawImage(v,0,0,cw,ch)}catch(e){}prog(Math.min(99,Math.round(v.currentTime/dur*100)));if(!v.ended)requestAnimationFrame(draw)}
+        v.onended=function(){setTimeout(function(){try{rec.state!=='inactive'&&rec.stop()}catch(e){end(null)}},250)};
+        tm=setTimeout(function(){end(null)},(dur+25)*1000);
+        rec.start(500);
+        var pr=v.play();
+        if(pr&&pr.catch)pr.catch(function(){end(null)});
+        draw();
+      };
+    }catch(e){end(null)}
   }
   [$('#cv'),$('#cvr')].forEach(function(fv){
     if(!fv) return;
@@ -701,10 +752,10 @@ function initComments(key){
     fv.addEventListener('change',function(){
       var file=fv.files&&fv.files[0]; if(!file) return;
       if(vquota(key)<=0){fv.value='';updQuota();return}
-      if(file.size>35*1024*1024){st.textContent='O vídeo é grande demais (máximo 35 MB).';fv.value='';return}
-      durOk(file,function(ok){
+      durOk(file,function(ok,dur){
       if(!ok){st.textContent='O vídeo deve ter até 15 segundos.';fv.value='';return}
       if(limited()){st.textContent='Muitos envios seguidos. Aguarde um minuto.';fv.value='';return}
+      function go(file){
       busy(true,'Enviando vídeo');
       var rd=new FileReader();
       rd.onload=function(){
@@ -715,6 +766,14 @@ function initComments(key){
           .catch(function(){busy(false);fv.value='';st.textContent='Não foi possível enviar o vídeo agora. O comentário não foi publicado. Tente de novo.'});
       };
       rd.readAsDataURL(file);
+      }
+      if(file.size<=35*1024*1024){go(file);return}
+      busy(true,'Reduzindo o tamanho do vídeo… 0%');
+      var lt=ldb&&ldb.querySelector('.lt');
+      squeeze(file,dur,function(p){if(lt)lt.textContent='Reduzindo o tamanho do vídeo… '+p+'%'},function(f2){
+        if(!f2){busy(false);st.textContent='O vídeo é grande demais (máximo 35 MB) e este aparelho não conseguiu reduzi-lo. Grave em qualidade menor (720p) e tente de novo.';fv.value='';return}
+        go(f2);
+      });
       });
     });
   });
